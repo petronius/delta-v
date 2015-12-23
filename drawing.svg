@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="1024px"
+   height="768px"
+   id="svg2985"
+   version="1.1"
+   inkscape:version="0.48.4 r9939"
+   sodipodi:docname="New document 2">
+  <defs
+     id="defs2987">
+    <mask
+       maskUnits="userSpaceOnUse"
+       id="mask3795">
+      <rect
+         style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+         id="rect3797"
+         width="480.12552"
+         height="46.669048"
+         x="405.17218"
+         y="684.95477"
+         ry="1.5042353" />
+    </mask>
+    <mask
+       maskUnits="userSpaceOnUse"
+       id="mask3812">
+      <g
+         id="g3814">
+        <path
+           transform="translate(-43,73)"
+           sodipodi:open="true"
+           sodipodi:end="6.2831329"
+           sodipodi:start="0"
+           d="m 924,602.5 a 234.5,234.5 0 1 1 0,-0.0123"
+           sodipodi:ry="234.5"
+           sodipodi:rx="234.5"
+           sodipodi:cy="602.5"
+           sodipodi:cx="689.5"
+           id="path3816"
+           style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           sodipodi:type="arc" />
+        <path
+           mask="url(#mask3795)"
+           transform="translate(0.84567103,-12.361)"
+           sodipodi:open="true"
+           sodipodi:end="6.2831329"
+           sodipodi:start="0"
+           d="m 881,685.5 a 235,15.5 0 1 1 0,-8.1e-4"
+           sodipodi:ry="15.5"
+           sodipodi:rx="235"
+           sodipodi:cy="685.5"
+           sodipodi:cx="646"
+           id="path3818"
+           style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           sodipodi:type="arc" />
+        <path
+           transform="matrix(0.76572459,0,0,1.0002663,119.5329,72.839642)"
+           sodipodi:open="true"
+           sodipodi:end="6.2831329"
+           sodipodi:start="0"
+           d="m 924,602.5 a 234.5,234.5 0 1 1 0,-0.0123"
+           sodipodi:ry="234.5"
+           sodipodi:rx="234.5"
+           sodipodi:cy="602.5"
+           sodipodi:cx="689.5"
+           id="path3820"
+           style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           sodipodi:type="arc" />
+        <path
+           sodipodi:type="arc"
+           style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           id="path3822"
+           sodipodi:cx="689.5"
+           sodipodi:cy="602.5"
+           sodipodi:rx="234.5"
+           sodipodi:ry="234.5"
+           d="m 924,602.5 a 234.5,234.5 0 1 1 0,-0.0123"
+           sodipodi:start="0"
+           sodipodi:end="6.2831329"
+           sodipodi:open="true"
+           transform="matrix(0.41866252,0,0,1.0007521,351.3322,72.546884)" />
+        <path
+           inkscape:connector-curvature="0"
+           id="path3824"
+           d="m 637,440 0,469"
+           style="fill:none;stroke:#ffffff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+        <path
+           sodipodi:type="arc"
+           style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           id="path3826"
+           sodipodi:cx="646"
+           sodipodi:cy="685.5"
+           sodipodi:rx="235"
+           sodipodi:ry="15.5"
+           d="m 881,685.5 a 235,15.5 0 1 1 0,-8.1e-4"
+           sodipodi:start="0"
+           sodipodi:end="6.2831329"
+           sodipodi:open="true"
+           transform="matrix(0.92746238,0,0,1.2873329,47.704973,-287.82767)"
+           mask="url(#mask3795)" />
+        <path
+           mask="url(#mask3795)"
+           transform="matrix(0.70227937,0,0,1.2281067,192.17319,-330.22809)"
+           sodipodi:open="true"
+           sodipodi:end="6.2831329"
+           sodipodi:start="0"
+           d="m 881,685.5 a 235,15.5 0 1 1 0,-8.1e-4"
+           sodipodi:ry="15.5"
+           sodipodi:rx="235"
+           sodipodi:cy="685.5"
+           sodipodi:cx="646"
+           id="path3828"
+           style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+           sodipodi:type="arc" />
+      </g>
+    </mask>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#000000"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="1"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.4142136"
+     inkscape:cx="519.18527"
+     inkscape:cy="443.88911"
+     inkscape:current-layer="layer1"
+     inkscape:document-units="px"
+     showgrid="false"
+     inkscape:window-width="703"
+     inkscape:window-height="396"
+     inkscape:window-x="2531"
+     inkscape:window-y="310"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata2990">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     id="layer1"
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer">
+    <path
+       style="fill:none;stroke:#0000ff;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 226.27835,373.63604 c 0,0 864.79155,-453.25545 94.04521,-267.28636"
+       id="path3884"
+       inkscape:connector-curvature="0" />
+    <rect
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:0.82283038;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect3846"
+       width="43.17717"
+       height="14.67717"
+       x="9.4114075"
+       y="13.911407"
+       ry="1.1322008" />
+    <rect
+       style="fill:none;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       id="rect2993"
+       width="818.84515"
+       height="340.7598"
+       x="10.1201"
+       y="33.120102"
+       ry="1.5031757" />
+    <rect
+       ry="1.5042353"
+       y="422"
+       x="489"
+       height="341"
+       width="532"
+       id="rect3773"
+       style="fill:#ffffff;fill-opacity:1;stroke:#ffffff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
+       mask="url(#mask3812)"
+       transform="translate(-478,-388)" />
+    <text
+       xml:space="preserve"
+       style="font-size:10px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans"
+       x="18.555145"
+       y="23.632965"
+       id="text3868"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="18.555145"
+         y="23.632965"
+         id="tspan3870"><tspan
+           x="18.555145"
+           y="23.632965"
+           style="font-variant:normal;font-weight:bold;font-stretch:normal;fill:#000000;font-family:FreeMono;-inkscape-font-specification:FreeMono Bold"
+           id="tspan3872">FORE</tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:10px;font-style:normal;font-weight:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#ffffff;fill-opacity:1;stroke:none;font-family:Sans"
+       x="63.088135"
+       y="23.425842"
+       id="text3862"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         x="63.088135"
+         y="23.425842"
+         id="tspan3864"><tspan
+           x="63.088135"
+           y="23.425842"
+           style="font-variant:normal;font-weight:bold;font-stretch:normal;font-family:FreeMono;-inkscape-font-specification:FreeMono Bold"
+           id="tspan3866">AFT    PORT    STARBOARD    ABOVE    BELOW</tspan></tspan></text>
+    <path
+       style="fill:none;stroke:#ff0000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:1, 6;stroke-dashoffset:0"
+       d="m 8.48947,290.19744 c 9.89949,2.82843 852.77073,-86.97414 394.56558,-12.72792"
+       id="path3858"
+       inkscape:connector-curvature="0" />
+    <path
+       sodipodi:type="arc"
+       style="fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path3860"
+       sodipodi:cx="845.25"
+       sodipodi:cy="646"
+       sodipodi:rx="6.25"
+       sodipodi:ry="6.5"
+       d="m 851.5,646 a 6.25,6.5 0 1 1 0,-3.4e-4"
+       sodipodi:start="0"
+       sodipodi:end="6.2831329"
+       sodipodi:open="true"
+       transform="translate(-478,-388)" />
+    <text
+       xml:space="preserve"
+       style="font-size:10px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:FreeMono;-inkscape-font-specification:FreeMono"
+       x="375.375"
+       y="244.75"
+       id="text3874"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3876"
+         x="375.375"
+         y="244.75"
+         style="font-size:8px;font-weight:bold;fill:#ff0000;fill-opacity:1;-inkscape-font-specification:FreeMono Bold">SEA TR-228 YANG-ZI</tspan></text>
+    <path
+       sodipodi:open="true"
+       sodipodi:end="6.2831329"
+       sodipodi:start="0"
+       d="m 851.5,646 a 6.25,6.5 0 1 1 0,-3.4e-4"
+       sodipodi:ry="6.5"
+       sodipodi:rx="6.25"
+       sodipodi:cy="646"
+       sodipodi:cx="845.25"
+       id="path3878"
+       style="fill:#000000;fill-opacity:1;stroke:#ff0000;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       sodipodi:type="arc"
+       transform="matrix(0.71858466,0,0,0.71858466,-240.28324,-206.36078)" />
+    <path
+       style="fill:#000000;fill-opacity:1;stroke:#ff0000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 367,256.125 -4.75,-10 10.125,0 z"
+       id="path3880"
+       inkscape:connector-curvature="0" />
+    <path
+       inkscape:connector-curvature="0"
+       id="path3882"
+       d="m 366.875,260.5 4.75,10 -10.125,0 z"
+       style="fill:#000000;fill-opacity:1;stroke:#ff0000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
+    <text
+       xml:space="preserve"
+       style="font-size:10px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:FreeMono;-inkscape-font-specification:FreeMono"
+       x="12.727921"
+       y="397.47604"
+       id="text3905"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan3907"
+         x="12.727921"
+         y="397.47604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1">STATUS DATA</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="409.97604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3909" /><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="422.47604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3911">MST 01:28:23:45.001 &gt;&gt;&gt; JUMP COMPLETE.</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="434.97604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3915">MST 01:28:23:46.237 &gt;&gt;&gt; <tspan
+   style="font-weight:normal;-inkscape-font-specification:FreeMono"
+   id="tspan3921">Entered</tspan> geosynchronous<tspan
+   style="font-weight:normal;-inkscape-font-specification:FreeMono"
+   id="tspan3919"> orbit above </tspan>Ganymede (0 N ; 27.25 E @ 37 000 KM)</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="447.47604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3925">MST 01:28:23:48.231 &gt;&gt;&gt; IFF identifies two ships:</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="459.97604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3927">                    ...   1. <tspan
+   style="fill:#ff0000;fill-opacity:1"
+   id="tspan3931">SEA TR-228 YANG-ZHE </tspan>(YELLOW RIVER CLASS INTERCEPTOR)</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="472.47604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan4087">                    ...   2. <tspan
+   style="fill:#0000ff;fill-opacity:1"
+   id="tspan3933">GSI 0012 MY BROTHER'S KEEPER </tspan><tspan
+   id="tspan3937"
+   style="font-weight:normal;fill:#fffffb;fill-opacity:1">(UNKNOWN CONFIGURATION)</tspan></tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="484.97604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3947">MST 01:28:34:02.201 &gt;&gt;&gt; INCOMING MESSAGE FROM <tspan
+   style="fill:#ff0000;fill-opacity:1"
+   id="tspan3959">SEA TR-228 YANG-ZHE</tspan>. MESSAGE HEADERS:</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="497.47604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3977">                    ...   <tspan
+   style="font-weight:normal"
+   id="tspan4017">BROADCAST:</tspan> TIGHT-BEAM</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="509.97604"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3979">                    ...   <tspan
+   style="font-weight:normal"
+   id="tspan4015">PRIORITY:</tspan> MAXIMUM</tspan><tspan
+         sodipodi:role="line"
+         x="12.727921"
+         y="522.47607"
+         style="font-weight:bold;fill:#ffffff;fill-opacity:1"
+         id="tspan3981">                    ... &quot;<tspan
+   style="fill:#00ff00;fill-opacity:1"
+   id="tspan3997">SEA TT-181 YELLOW RIVER</tspan>; STAND DOWN AND HOLD CURRENT ORBIT FOR DOCKING MANOUVER&quot;</tspan></text>
+    <path
+       sodipodi:open="true"
+       sodipodi:end="6.2831329"
+       sodipodi:start="0"
+       d="m 851.5,646 a 6.25,6.5 0 1 1 0,-3.4e-4"
+       sodipodi:ry="6.5"
+       sodipodi:rx="6.25"
+       sodipodi:cy="646"
+       sodipodi:cx="845.25"
+       id="path3878-6"
+       style="fill:#000000;fill-opacity:1;stroke:#0000ff;stroke-width:1;stroke-linecap:square;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       sodipodi:type="arc"
+       transform="matrix(0.71858466,0,0,0.71858466,-263.63495,-363.38039)" />
+    <text
+       xml:space="preserve"
+       style="font-size:10px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#000000;fill-opacity:1;stroke:none;font-family:FreeMono;-inkscape-font-specification:FreeMono"
+       x="350.07333"
+       y="112.08739"
+       id="text4045"
+       sodipodi:linespacing="125%"><tspan
+         sodipodi:role="line"
+         id="tspan4047"
+         x="350.07333"
+         y="112.08739"
+         style="font-size:8px;font-weight:bold;fill:#0000ff;fill-opacity:1;-inkscape-font-specification:FreeMono Bold">GSI 0012 MY BROTHER'S KEEPER</tspan></text>
+  </g>
+</svg>
