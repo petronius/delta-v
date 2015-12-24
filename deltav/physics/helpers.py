@@ -12,7 +12,7 @@ def kepler(m_anom, eccentricity):
     Returns: eccentric anomaly in radians.
     """
 
-    desired_accuracy = 1e-6
+    desired_accuracy = 1e-12
     e_anom = m_anom
 
     while True:
@@ -29,9 +29,9 @@ def Rx(theta):
     """
     return matrix([
         [1, 0,           0           ],
-        [0, cos(theta), -1*sin(theta)],
-        [0, sin(theta), cos(theta)   ],
-    ], dtype="float64")
+        [0, cos(theta), sin(theta)   ],
+        [0, -sin(theta), cos(theta)  ],
+    ], dtype="float128")
 
 def Ry(theta):
     """
@@ -40,16 +40,16 @@ def Ry(theta):
     return matrix([
         [cos(theta),    0, sin(theta)],
         [0,             1, 0         ],
-        [-1*sin(theta), 0, cos(theta)],
-    ], dtype="float64")
+        [-sin(theta),   0, cos(theta)],
+    ], dtype="float128")
     
 def Rz(theta):
     """
     Return a rotation matrix for the Z axis and angle *theta*
     """
     return matrix([
-        [cos(theta), -1*sin(theta), 0],
-        [sin(theta), cos(theta),    0],
-        [0,          0,             1],
-    ], dtype="float64")
+        [cos(theta), sin(theta),   0],
+        [-sin(theta), cos(theta),  0],
+        [0,          0,            1],
+    ], dtype="float128")
     

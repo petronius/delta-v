@@ -12,6 +12,7 @@ from numpy import (
     linalg,
     asarray,
     squeeze,
+    float128,
     # values and arithmatic functions
     pi,
     sqrt,
@@ -20,12 +21,15 @@ from numpy import (
     tan, arctan, arctan2,
     # matrix functions and helpers
     dot,
+    inner,
     cross,
     newaxis,
 )
 import textwrap
 
 from .helpers import kepler, Rx, Rz, Ry
+
+pi = float128("3.141592653589793238")
 
 
 class OrbitCalculationException(Exception):
@@ -99,7 +103,7 @@ class Orbit(object):
         """
         Gravitational parameter (2-body)
         """
-        return self.G * (self.parent.mass) # - self.satellite.mass)
+        return self.G * self.parent.mass
 
     @property
     def v_angular_momentum(self):
@@ -109,22 +113,44 @@ class Orbit(object):
         return cross(self.v_position, self.v_velocity)
 
     @property
+    def v_eccentricity(self):
+        """
+        Eccentricity vector.
+        """
+        return (
+            cross(self.v_velocity, self.v_angular_momentum) / self.gravitational_parameter
+            -
+            self.v_position/self.mag(self.v_position)
+        )
+
+    @property
     def v_node(self):
         """
         Node (of ascension) vector (m**2 / s)
         """
-        return cross(self.K, self.v_angular_momentum)
+        return cross(self.K.T, self.v_angular_momentum)
 
     @property
-    def v_eccentricity(self):
+    def true_anomaly(self):
         """
-        Eccentricity vector. The e orbital parameter is derived as the magnitude
-        of this vector, so if ``o`` is an orbit object:
+        True anomaly (angle from the focus at the barycentre of the orbit, ν).
+        """
+        # fixme: not sure if correct
+        true_anomaly = arccos(
+            inner(self.v_eccentricity, self.v_position)
+            /
+            (self.eccentricity*self.mag(self.v_position))
+        )
+        if dot(self.v_position, self.v_velocity) < 0:
+            true_anomaly = 2 * pi - true_anomaly
+        return true_anomaly
 
-        >>> e = o.mag(o.v_eccentricity)
+    @property
+    def inclination(self):
         """
-        return (cross(self.v_velocity, self.v_angular_momentum) / self.gravitational_parameter) - \
-               (self.v_position/self.mag(self.v_position))
+        Inclination of the orbit (i).
+        """
+        return arccos(self.v_angular_momentum[2]/self.mag(self.v_angular_momentum))
 
     @property
     def eccentricity(self):
@@ -134,40 +160,15 @@ class Orbit(object):
         return self.mag(self.v_eccentricity)
 
     @property
-    def specific_mechanical_energy(self):
+    def eccentric_anomaly(self):
         """
-        What it says on the tin
+        Like the true anomaly, but measured about the center of the ellipse.
         """
-        return (self.mag(self.v_velocity)/2) - (self.gravitational_parameter/self.mag(self.v_position))
-
-    @property
-    def semi_major_axis(self):
-        """
-        Calculate the semi-major axis (a).
-
-        Units are probably whatever units the original positional vector is in?
-        """
-        return 1 / ((2/self.mag(self.v_position)) - (self.mag(self.v_velocity)**2/self.gravitational_parameter))
-
-    @property
-    def period(self):
-        """
-        The orbital period in seconds.
-
-        https://en.wikipedia.org/wiki/Orbital_period#Small_body_orbiting_a_central_body
-        """
-        if self.semi_major_axis < 1:
-            raise OrbitCalculationException("Hyperbolic and parabolic orbits don't have a period!")
-        return 2 * pi * sqrt(
-            self.semi_major_axis**3 / self.gravitational_parameter
+        return 2 * arctan(
+            tan(self.true_anomaly/2)
+            /
+            sqrt((1 + self.eccentricity) / (1 - self.eccentricity))
         )
-
-    @property
-    def inclination(self):
-        """
-        Inclination of the orbit (i).
-        """
-        return arccos(self.v_angular_momentum[2]/self.mag(self.v_angular_momentum))
 
     @property
     def long_of_asc_node(self):
@@ -185,30 +186,42 @@ class Orbit(object):
         Argument of periapsis (ω). (Angle to ray from the barycenter to the node
         of ascension, relative to the reference direction.)
         """
-        argument_of_periapsis = arccos(dot(self.v_node, self.v_eccentricity)/(self.mag(self.v_node)*self.eccentricity))
+        argument_of_periapsis = arccos(
+            inner(self.v_node, self.v_eccentricity)
+            /
+            (self.mag(self.v_node)*self.mag(self.v_eccentricity))
+        )
         if self.v_eccentricity[2] < 0:
             argument_of_periapsis = 2 * pi - argument_of_periapsis
         return argument_of_periapsis
 
     @property
-    def true_anomaly(self):
+    def semi_major_axis(self):
         """
-        True anomaly (angle from the focus at the barycentre of the orbit, ν).
+        Calculate the semi-major axis (a).
+
+        Units are probably whatever units the original positional vector is in?
         """
-        true_anomaly = arccos(dot(self.v_eccentricity, self.v_position)/(self.eccentricity*self.mag(self.v_position)))
-        if dot(self.v_position, self.v_velocity) < 0:
-            true_anomaly = 2 * pi - true_anomaly
-        return true_anomaly
+        return 1 / ((2/self.mag(self.v_position)) - (self.mag(self.v_velocity)**2/self.gravitational_parameter))
+
+    # @property
+    # def specific_mechanical_energy(self):
+    #     """
+    #     What it says on the tin
+    #     """
+    #     return (self.mag(self.v_velocity)/2) - (self.gravitational_parameter/self.mag(self.v_position))
 
     @property
-    def eccentric_anomaly(self):
+    def period(self):
         """
-        Like the true anomaly, but measured about the center of the ellipse.
+        The orbital period in seconds.
+
+        https://en.wikipedia.org/wiki/Orbital_period#Small_body_orbiting_a_central_body
         """
-        return 2 * arctan(
-            tan(self.true_anomaly/2)
-            /
-            sqrt((1 + self.eccentricity) / (1 - self.eccentricity))
+        if self.semi_major_axis < 1:
+            raise OrbitCalculationException("Hyperbolic and parabolic orbits don't have a period!")
+        return 2 * pi * sqrt(
+            self.semi_major_axis**3 / self.gravitational_parameter
         )
 
     @property
@@ -216,7 +229,7 @@ class Orbit(object):
         """
         Mean anomaly.
         """
-        return self.eccentric_anomaly - self.eccentricity * sin(self.eccentric_anomaly)
+        return self.eccentric_anomaly - (self.eccentricity * sin(self.eccentric_anomaly))
     
 
     #
@@ -249,25 +262,75 @@ class Orbit(object):
     @staticmethod
     def rotate(vector, O, i, w):
         """
-        Peform a Euler rotation on *vector* using the angles *Ω*, *i*, and *ω*
-        (ie, the Euler angles α, β, γ).
+        Peform a rotation on *vector* using the angles *Ω*, *i*, and *ω*.
         """
-        #
-        # FIXME: This method doesn't work. Rotating by the inclination (ie,
-        #        doing ``dot(Rx(-1*i), vector)``) works fine, but adding in the
-        #        other terms fails.
-        #
-        #        I am currently completely stumped as to why.
-        #
-        # https://en.wikipedia.org/wiki/Rotation_matrix
-        # need a column vector here
         vector = vector[:, newaxis]
-        R = Rz(-1*O) * Rx(-1*i) * Rz(-1*w) # this produces weird results for some reason
-        #R = Rx(-1*i)
-        result = dot(R, vector)
-        # transform back into expected format and return
-        return squeeze(asarray(result))
+        res = (Rz(-O) * Rx(-i) * Rz(-w)).dot(vector)
+        return squeeze(asarray(res))
 
+
+    @classmethod
+    def reverse(cls,
+            semi_major_axis,
+            eccentricity,
+            argument_of_periapsis,
+            long_of_asc_node,
+            inclination,
+            mean_anomaly,
+            gravitational_parameter,
+        ):
+        """
+        Return state vectors (v_position, v_velocity) for the given Keplarian
+        elements
+        """
+        eccentric_anomaly = kepler(mean_anomaly, eccentricity)
+
+        arg1 = sqrt(1 + eccentricity) * sin(eccentric_anomaly/2)
+        arg2 = sqrt(1 - eccentricity) * cos(eccentric_anomaly/2)
+        true_anomaly = 2 * arctan2(arg1, arg2)
+
+        distance = semi_major_axis * (1 - eccentricity * cos(eccentric_anomaly))
+
+        v_position = distance * array([
+            cos(true_anomaly),
+            sin(true_anomaly),
+            0,
+        ])
+
+        v_velocity = (
+            sqrt(gravitational_parameter * semi_major_axis)
+            /
+            distance
+        ) * array([
+            -sin(eccentric_anomaly),
+            sqrt(1-eccentricity**2) * cos(eccentric_anomaly),
+            0,
+        ])
+
+        v_position = cls.rotate(v_position, long_of_asc_node, inclination, argument_of_periapsis)
+        v_velocity = cls.rotate(v_velocity, long_of_asc_node, inclination, argument_of_periapsis)
+
+        return v_position, v_velocity
+
+
+    def step(self, seconds):
+        """
+        Update the position of the craft based on the number of seconds that
+        have passed.
+        """
+        # Basic procedure from https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
+        mean_anomaly = self.mean_anomaly + seconds * sqrt(self.gravitational_parameter/self.semi_major_axis**3)
+        mean_anomaly = self.normalize(mean_anomaly, 0, 2*pi)
+        
+        self.v_position, self.v_velocity = self.reverse(
+            self.semi_major_axis,
+            self.eccentricity,
+            self.argument_of_periapsis,
+            self.long_of_asc_node,
+            self.inclination,
+            mean_anomaly,
+            self.gravitational_parameter,
+        )
 
     #
     # Miscellaneous helper properties for humans
@@ -290,68 +353,3 @@ class Orbit(object):
     def is_hyperbolic(self):
         # FIXME: this whole class needs to handle Hyperbolic orbits.
         return self.mag(self.v_eccentricity) > 1
-
-    def step(self, seconds):
-        """
-        Update the position of the craft based on the number of seconds that
-        have passed.
-        """
-        # Basic procedure from https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
-        mean_anomaly = self.mean_anomaly + seconds * sqrt(self.gravitational_parameter/self.semi_major_axis**3)
-        mean_anomaly = self.normalize(mean_anomaly, 0, 2*pi)
-        
-        # I don't feel like I lose out on anything for not writing a Newton-Raphson solver myself.
-        eccentric_anomaly = kepler(mean_anomaly, self.eccentricity)
-
-        arg1 = sqrt(1 + self.eccentricity) * sin(eccentric_anomaly/2)
-        arg2 = sqrt(1 - self.eccentricity) * cos(eccentric_anomaly/2)
-        true_anomaly = 2 * arctan2(arg1, arg2)
-
-        distance = self.semi_major_axis * (1 - self.eccentricity * cos(eccentric_anomaly))
-
-        v_position = distance * array([
-            cos(true_anomaly),
-            sin(true_anomaly),
-            0,
-        ])
-
-        v_velocity = (sqrt(self.gravitational_parameter * self.semi_major_axis)/distance) * array([
-            -1 * sin(eccentric_anomaly),
-            sqrt(1-self.eccentricity**2) * cos(eccentric_anomaly),
-            0,
-        ])
-
-        # Now we have to rotate these relative to the reference plane using the
-        # Euler rotations
-        #
-        # Set self.v_position = v_position
-        #     self.v_velocity = v_velocity
-        #
-        # to get orbit shapes without rotation.
-        #
-        self.v_position = self.rotate(v_position, self.long_of_asc_node, self.inclination, self.argument_of_periapsis)
-        self.v_velocity = self.rotate(v_velocity, self.long_of_asc_node, self.inclination, self.argument_of_periapsis)
-
-
-if __name__ == "__main__":
-
-
-    class Body(object):
-        def __init__(self, mass, radius):
-            self.mass = mass
-            self.radius = radius
-
-    earth = Body(5.972e24, 1) # kg, m
-    iss = Body(419600, 1) # kg, m
-    o2_position = array([400000, 10, 10], dtype="float64") # meters
-    o2_velocity = array([7660, 1, 1], dtype="float64") # m/s
-    o = Orbit(earth, iss, o2_position, o2_velocity)
-    print(o, o.v_position)
-    o.step(200)
-    print(o, o.v_position)
-    o.step(200)
-    print(o, o.v_position)
-    o.step(200)
-    print(o, o.v_position)
-    o.step(200)
-    print(o, o.v_position)
