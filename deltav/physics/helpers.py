@@ -31,7 +31,7 @@ def Rx(theta):
         [1, 0,           0           ],
         [0, cos(theta), sin(theta)   ],
         [0, -sin(theta), cos(theta)  ],
-    ], dtype="float128")
+    ], dtype="float64")
 
 def Ry(theta):
     """
@@ -41,7 +41,7 @@ def Ry(theta):
         [cos(theta),    0, sin(theta)],
         [0,             1, 0         ],
         [-sin(theta),   0, cos(theta)],
-    ], dtype="float128")
+    ], dtype="float64")
     
 def Rz(theta):
     """
@@ -51,5 +51,5 @@ def Rz(theta):
         [cos(theta), sin(theta),   0],
         [-sin(theta), cos(theta),  0],
         [0,          0,            1],
-    ], dtype="float128")
+    ], dtype="float64")
     

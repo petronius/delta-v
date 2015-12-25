@@ -1,6 +1,6 @@
 
 from .modules import EmptyModule
-from physics.orbit import Orbit
+from deltav.physics.orbit import Orbit
 
 #
 # Nothing to see here yet
@@ -81,6 +81,13 @@ class BaseShip(object):
         Set the orbit of the ship around an object
         """
         self._orbit = Orbit(parent, self, position, velocity)
+
+    @property
+    def position(self):
+        """
+        Return the position of the ship, relative to the body it is orbiting.
+        """
+        return tuple(self._orbit.v_position)
 
 
 
