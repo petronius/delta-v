@@ -1,0 +1,8 @@
+
+FULLSCREEN = False
+
+SCREEN_SIZE = (1000, 800)
+
+DEBUG=True
+
+MAIN_WINDOW_TITLE="delta-v"

@@ -1,5 +1,5 @@
 
-from numpy import matrix, cos, sin
+from numpy import matrix, cos, sin, sinh, cosh
 
 # From Paul Griffith's Pyastro library
 def kepler(m_anom, eccentricity):
@@ -12,12 +12,26 @@ def kepler(m_anom, eccentricity):
     Returns: eccentric anomaly in radians.
     """
 
-    desired_accuracy = 1e-12
+    desired_accuracy = 1e-6
     e_anom = m_anom
 
     while True:
         diff = e_anom - eccentricity * sin(e_anom) - m_anom
         e_anom -= diff / (1 - eccentricity * cos(e_anom))
+        if abs(diff) <= desired_accuracy:
+            break
+    return e_anom
+
+
+def keplerh(m_anom, eccentricity):
+
+    desired_accuracy = 1e-6
+    e_anom = m_anom
+
+    while True:
+        diff = eccentricity * sin(e_anom) - e_anom - m_anom
+        e_anom -= diff / (eccentricity * cosh(e_anom) - 1)
+        print(" ", diff)
         if abs(diff) <= desired_accuracy:
             break
     return e_anom

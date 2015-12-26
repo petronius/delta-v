@@ -1,10 +1,10 @@
+from physics.body import Body
 
-
-class BaseModule(object):
-
-    mass = 0
+class BaseModule(Body):
 
     def __init__(self):
+        super(BaseModule, self).__init__()
+
         self.hp = 0
 
         self.power_draw = 0

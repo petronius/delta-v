@@ -16,6 +16,8 @@ from numpy import (
     # values and arithmatic functions
     pi,
     sqrt,
+    log,
+    sign,
     cos, arccos, cosh, arccosh,
     sin, arcsin, sinh,
     tan, arctan, arctan2,
@@ -27,7 +29,7 @@ from numpy import (
 )
 import textwrap
 
-from .helpers import kepler, Rx, Rz, Ry
+from .helpers import kepler, keplerh, Rx, Rz, Ry
 
 cbrt = lambda x: x**(1/3.0)
 
@@ -227,13 +229,6 @@ class Orbit(object):
         """
         return 1 / ((2/self.mag(self.v_position)) - (self.mag(self.v_velocity)**2/self.gravitational_parameter))
 
-    # @property
-    # def specific_mechanical_energy(self):
-    #     """
-    #     What it says on the tin
-    #     """
-    #     return (self.mag(self.v_velocity)/2) - (self.gravitational_parameter/self.mag(self.v_position))
-
     @property
     def period(self):
         """
@@ -421,6 +416,7 @@ class Orbit(object):
             )
 
         else:
+            raise NotImplementedError("Parabolic and hyperbolic orbits still broken")
             # For hyperbolic and parabolic orbits this is a little more 
             # complicated. The steps are as follows:
             #
@@ -433,27 +429,49 @@ class Orbit(object):
             #
             # FIXME: do we need to update the velocity vector?
             #
-            # https://en.wikipedia.org/wiki/Parabolic_trajectory#Barker.27s_equation
             current_time = self.time_from_periapsis + seconds
 
-            A = (3/2) * sqrt(
-                self.gravitational_parameter / (2 * self.periapsis_distance**3)
-            ) * current_time
+            if self.is_parabolic:
+                # https://en.wikipedia.org/wiki/Parabolic_trajectory#Barker.27s_equation
+                A = (3/2) * sqrt(
+                    self.gravitational_parameter / (2 * self.periapsis_distance**3)
+                ) * current_time
 
-            B = cbrt(
-                A + sqrt(
-                    A**2 + 1
+                B = cbrt(
+                    A + sqrt(
+                        A**2 + 1
+                    )
                 )
-            )
 
-            true_anomaly = 2 * arctan(B - 1/B)
+                true_anomaly = 2 * arctan(B - 1/B)
+
+                distance = self.semi_major_axis * (1 - self.eccentricity * cos(eccentric_anomaly))
+
+            else:
+                # Hyperbolic.
+
+                delta_M = (self.mean_anomaly / self.time_from_periapsis) * current_time
+                mean_anomaly = self.mean_anomaly + delta_M
+                mean_anomaly = self.normalize(mean_anomaly, 0, 2*pi)
+
+                # http://disciplinas.stoa.usp.br/pluginfile.php/66104/mod_resource/content/1/OrbitalMechanicsForEngineeringStudents-AerospaceEngineering.pdf (3.42)
+                eccentric_anomaly = keplerh(mean_anomaly, self.eccentricity)
+                # 3.38b
+                true_anomaly = arccos(
+                    (cosh(eccentric_anomaly) - self.eccentricity)
+                    /
+                    (1 - self.eccentricity * cosh(eccentric_anomaly))
+                )
+                print(self.true_anomaly, true_anomaly)
+                # http://www.bogan.ca/orbits/kepler/orbteqtn.html
+                distance = self.semi_latus_rectum / (1 + self.eccentricity * cos(true_anomaly))
+                print(distance)
+
+                
 
             # Re-derive the eccentric, thence the mean anomaly.
-            eccentric_anomaly = self._eccentric_anomaly(true_anomaly, self.eccentricity)
-            mean_anomaly = self._mean_anomaly(eccentric_anomaly, self.eccentricity)
-
-
-            distance = self.semi_major_axis * (1 - self.eccentricity * cos(eccentric_anomaly))
+            #eccentric_anomaly = self._eccentric_anomaly(true_anomaly, self.eccentricity)
+            #mean_anomaly = self._mean_anomaly(eccentric_anomaly, self.eccentricity)
 
             v_position = distance * array([
                 cos(true_anomaly),
@@ -488,7 +506,7 @@ class Orbit(object):
                 m += 1
             else:
                 n = m
-            step_size = self.mean_anomaly * 10
+            step_size = 10
             out = []
             # backward
             for step in range(n):
