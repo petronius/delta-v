@@ -23,18 +23,19 @@ def kepler(m_anom, eccentricity):
     return e_anom
 
 
-def keplerh(m_anom, eccentricity):
-
-    desired_accuracy = 1e-6
-    e_anom = m_anom
-
+def keplerh(M, e, accuracy = 1e-12):
+    F = M
+    if F == 0:
+        return 0
     while True:
-        diff = eccentricity * sin(e_anom) - e_anom - m_anom
-        e_anom -= diff / (eccentricity * cosh(e_anom) - 1)
-        print(" ", diff)
-        if abs(diff) <= desired_accuracy:
+        f = e * sinh(F) - F - M
+        fp = e * cosh(F) - 1
+        ratio = f/fp
+        if abs(ratio) <= accuracy:
             break
-    return e_anom
+        else:
+            F = F - ratio
+    return F
 
 
 def Rx(theta):

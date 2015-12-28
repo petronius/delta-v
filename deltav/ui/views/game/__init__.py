@@ -126,5 +126,4 @@ class GameView(deltav.ui.views.BaseView):
 
     def tick(self):
         for ship in self.ships:
-            ship._orbit.step(120)
-            print(1)
+            ship._orbit.step(1)
