@@ -139,6 +139,5 @@ class GameWindow(pyglet.window.Window):
         Triggered by the application event loop, this method delegates further
         event calls to the current view.
         """
-        print(dt)
         if self.view:
             self.view.tick()

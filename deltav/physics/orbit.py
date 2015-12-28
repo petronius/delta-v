@@ -488,7 +488,6 @@ class Orbit(object):
                 )
                 true_anomaly = 2.0 * arctan(B - 1.0/B)
                 if current_time:
-                    print(true_anomaly)
                     distance = (2.0 * self.periapsis_distance) / (1.0 + cos(true_anomaly))
                 else:
                     distance = self.periapsis_distance
@@ -589,7 +588,6 @@ class Orbit(object):
 
     @property
     def is_parabolic(self):
-        print("para?", self.eccentricity, self.ONE)
         return self.eq(self.eccentricity, self.ONE)
 
     @property

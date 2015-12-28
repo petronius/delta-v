@@ -2,7 +2,7 @@
 from numpy import matrix, cos, sin, sinh, cosh
 
 # From Paul Griffith's Pyastro library
-def kepler(m_anom, eccentricity):
+def kepler(m_anom, eccentricity, accuracy = 1e-12):
 
     """Solves Kepler's equation for the eccentric anomaly
     using Newton's method.
@@ -12,13 +12,12 @@ def kepler(m_anom, eccentricity):
     Returns: eccentric anomaly in radians.
     """
 
-    desired_accuracy = 1e-6
     e_anom = m_anom
 
     while True:
         diff = e_anom - eccentricity * sin(e_anom) - m_anom
         e_anom -= diff / (1 - eccentricity * cos(e_anom))
-        if abs(diff) <= desired_accuracy:
+        if abs(diff) <= accuracy:
             break
     return e_anom
 

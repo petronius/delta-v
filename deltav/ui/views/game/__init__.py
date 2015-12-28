@@ -10,6 +10,8 @@ from pyglet.gl import *
 
 from deltav.physics.orbit import pi
 
+from .camera import Camera
+
 class GameView(deltav.ui.views.BaseView):
 
     # Scale factor for the game view, in meters
@@ -22,8 +24,9 @@ class GameView(deltav.ui.views.BaseView):
         width = deltav.ui.game_window.width
         height = deltav.ui.game_window.height
         scale = width/self.scale
-        x = x * scale + width/2
-        y = height/2 - y * scale
+        x = x * scale
+        y = y * scale
+        z = z * scale
         return x, y, z
 
     def __init__(self):
@@ -51,6 +54,11 @@ class GameView(deltav.ui.views.BaseView):
 
         self.ships = (shuttle, station,)
 
+        self.camera = Camera(
+            deltav.ui.game_window.width,
+            deltav.ui.game_window.height,
+        )
+
 
     def draw_planet(self, planet, pts=30, color=(255,0,0)):
 
@@ -59,20 +67,20 @@ class GameView(deltav.ui.views.BaseView):
             angle = float(i)/pts * 2 * pi
             x = planet.radius * numpy.cos(angle)
             y = planet.radius * numpy.sin(angle)
-            verts += self._convert(x, y)[:2]
+            verts += self._convert(x, y, 0)
 
         pyglet.graphics.draw(pts, pyglet.gl.GL_LINE_LOOP,
-            ("v2f", verts),
+            ("v3f", verts),
             ("c3B", color*pts),
         )
 
     def draw_triangle(self, offset, color, x, y, z):
 
-            a = (x, y+offset)
-            b = (x+offset, y)
-            c = (x-offset, y)
+            a = (x, y+offset, z)
+            b = (x+offset, y, z)
+            c = (x-offset, y, z)
             pyglet.graphics.draw(3, pyglet.gl.GL_TRIANGLES,
-                ('v2f', a + b + c),
+                ('v3f', a + b + c),
                 ('c3B', color*3),
             )
 
@@ -82,10 +90,10 @@ class GameView(deltav.ui.views.BaseView):
         points = ()
         for pt in ship._orbit.get_plot(30):
             x, y, z = self._convert(*pt)
-            points += (x, y)
+            points += (x, y, z)
 
         pyglet.graphics.draw(30, pyglet.gl.GL_LINE_LOOP,
-            ("v2f", points),
+            ("v3f", points),
             ("c3B", orbit_color*30),
         )
 
@@ -102,26 +110,22 @@ class GameView(deltav.ui.views.BaseView):
         pass
 
     def on_draw(self):
-        #self.camera.apply()
-
-        # glEnable(GL_DEPTH_TEST)
+        self.camera.apply()
 
         for ship in self.ships:
             self.draw_ship(ship)
 
         self.draw_planet(self.planet)
 
-        # glDisable(GL_DEPTH_TEST)
-
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        #self.camera.drag(x, y, dx, dy, buttons, modifiers)
+        self.camera.drag(x, y, dx, dy, buttons, modifiers)
         pass
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         pass
 
     def on_key_press(self, key, modifiers):
-        #self.camera.key(key, modifiers)
+        self.camera.key(key, modifiers)
         pass
 
     def tick(self):
