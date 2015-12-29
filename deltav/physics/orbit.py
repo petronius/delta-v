@@ -37,6 +37,22 @@ seterr(all="raise")
 cbrt = lambda x: x**(float128("1.0")/float128("3.0"))
 
 
+def cached_property(f):
+    """returns a cached property that is calculated by function f"""
+    def get(self):
+        try:
+            return self._property_cache[f]
+        except AttributeError:
+            self._property_cache = {}
+            x = self._property_cache[f] = f(self)
+            return x
+        except KeyError:
+            x = self._property_cache[f] = f(self)
+            return x
+        
+    return property(get)
+
+
 class OrbitCalculationException(Exception):
     pass
 
@@ -94,6 +110,8 @@ class Orbit(object):
         self.v_position = array(v_position)
         self.v_velocity = array(v_velocity)
 
+        self.propery_cache = {}
+
 
     def __repr__(self):
         return self.TPL % (
@@ -117,21 +135,21 @@ class Orbit(object):
     # Define properties for the classical orbital elements
     #
 
-    @property
+    @cached_property
     def gravitational_parameter(self):
         """
         Gravitational parameter (2-body)
         """
         return self.G * self.parent.mass
 
-    @property
+    @cached_property
     def v_angular_momentum(self):
         """
         Angular momentum vector, in m**2/s
         """
         return cross(self.v_position, self.v_velocity)
 
-    @property
+    @cached_property
     def v_eccentricity(self):
         """
         Eccentricity vector.
@@ -142,14 +160,14 @@ class Orbit(object):
             self.v_position/self.mag(self.v_position)
         )
 
-    @property
+    @cached_property
     def v_node(self):
         """
         Node (of ascension) vector (m**2 / s)
         """
         return cross(self.K.T, self.v_angular_momentum)
 
-    @property
+    @cached_property
     def true_anomaly(self):
         """
         True anomaly (angle from the focus at the barycentre of the orbit, ν).
@@ -164,14 +182,14 @@ class Orbit(object):
             true_anomaly = 2.0 * pi - true_anomaly
         return true_anomaly
 
-    @property
+    @cached_property
     def inclination(self):
         """
         Inclination of the orbit (i).
         """
         return arccos(self.v_angular_momentum[2]/self.mag(self.v_angular_momentum))
 
-    @property
+    @cached_property
     def eccentricity(self):
         """
         The eccentricity of the orbital ellipse.
@@ -182,7 +200,7 @@ class Orbit(object):
         else:
             return e
 
-    @property
+    @cached_property
     def eccentric_anomaly(self):
         return self._eccentric_anomaly(self.true_anomaly, self.eccentricity)
 
@@ -213,7 +231,7 @@ class Orbit(object):
         else:
             raise Exception("Are you in the right spacetime?")
 
-    @property
+    @cached_property
     def long_of_asc_node(self):
         """
         Longitude of the ascending node (Ω).
@@ -223,7 +241,7 @@ class Orbit(object):
             long_of_asc_node = 2.0 * pi - long_of_asc_node
         return long_of_asc_node
 
-    @property
+    @cached_property
     def argument_of_periapsis(self):
         """
         Argument of periapsis (ω). (Angle to ray from the barycenter to the node
@@ -238,7 +256,7 @@ class Orbit(object):
             argument_of_periapsis = 2.0 * pi - argument_of_periapsis
         return argument_of_periapsis
 
-    @property
+    @cached_property
     def semi_major_axis(self):
         """
         Calculate the semi-major axis (a).
@@ -247,14 +265,14 @@ class Orbit(object):
         """
         return 1.0 / ((2.0/self.mag(self.v_position)) - (self.mag(self.v_velocity)**2.0/self.gravitational_parameter))
 
-    # @property
+    # @cached_property
     # def specific_mechanical_energy(self):
     #     """
     #     What it says on the tin
     #     """
     #     return (self.mag(self.v_velocity)/2) - (self.gravitational_parameter/self.mag(self.v_position))
 
-    @property
+    @cached_property
     def period(self):
         """
         The orbital period in seconds.
@@ -268,7 +286,7 @@ class Orbit(object):
         else:
             return None
 
-    @property
+    @cached_property
     def mean_anomaly(self):
         return self._mean_anomaly(self.eccentric_anomaly, self.eccentricity)
 
@@ -286,7 +304,7 @@ class Orbit(object):
             return eccentricity * sinh(eccentric_anomaly) - eccentric_anomaly
 
 
-    @property
+    @cached_property
     def periapsis_distance(self):
         # http://www.bogan.ca/orbits/kepler/orbteqtn.html
         # http://scienceworld.wolfram.com/physics/SemilatusRectum.html
@@ -297,7 +315,7 @@ class Orbit(object):
         else:
             return self.semi_major_axis * (1.0 - self.eccentricity)
 
-    @property
+    @cached_property
     def semi_latus_rectum(self):
         """
         Return the semi-latus rectum for the current orbit (p). (Units?)
@@ -311,7 +329,7 @@ class Orbit(object):
             return self.semi_major_axis * (self.eccentricity**2 - 1)
     
 
-    @property
+    @cached_property
     def time_from_periapsis(self):
         """
         Pretty much just here for doing calculations on parabolic and hyperbolic
@@ -538,6 +556,7 @@ class Orbit(object):
 
         if update:
             self.v_position, self.v_velocity = v_position, v_velocity
+            self._property_cache = {}
 
         return v_position, v_velocity
 
@@ -582,20 +601,20 @@ class Orbit(object):
     # Miscellaneous helper properties for humans
     #
 
-    @property
+    @cached_property
     def is_circular(self):
         return self.eq(self.eccentricity, 0)
 
-    @property
+    @cached_property
     def is_parabolic(self):
         return self.eq(self.eccentricity, self.ONE)
 
-    @property
+    @cached_property
     def is_hyperbolic(self):
         # Check parabolic for the floating point check
         return not self.is_parabolic and self.eccentricity > self.ONE
 
-    @property
+    @cached_property
     def is_elliptical(self):
         # Check parabolic for the floating point check
         return not self.is_parabolic and self.eccentricity < self.ONE
