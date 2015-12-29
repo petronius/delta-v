@@ -160,8 +160,8 @@ class Camera:
     def draw_sphere(self, coords, radius, color):
         self._perspective()
 
-        slices = (GLint)(30)
-        stacks = (GLint)(30)
+        slices = (GLint)(20)
+        stacks = (GLint)(20)
 
         glColor3f(*color)
         q = gluNewQuadric()

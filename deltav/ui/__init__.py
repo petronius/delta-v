@@ -112,7 +112,7 @@ class GameWindow(pyglet.window.Window):
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         if self.view:
-            self.view.on_mouse_drag(x, y, dy, dy, buttons, modifiers)
+            self.view.on_mouse_drag(x, y, dx, dy, buttons, modifiers)
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         if self.view:

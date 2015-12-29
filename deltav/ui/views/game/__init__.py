@@ -7,6 +7,7 @@ import deltav.physics.body
 import deltav.ships
 
 from pyglet.gl import *
+from pyglet.window import key
 from numpy import *
 
 from deltav.physics.orbit import pi
@@ -81,7 +82,7 @@ class GameView(deltav.ui.views.BaseView):
 
     def draw_ship(self, ship, orbit_color=(0,0,255), ship_color=(0,0,255)):
 
-        orbit = [self._convert(*p) for p in ship._orbit.get_plot(39)]
+        orbit = [self._convert(*p) for p in ship._orbit.get_plot(60)]
         self.camera.draw_loop(orbit, orbit_color)
 
         coords = self._convert(*ship.position)
@@ -111,8 +112,24 @@ class GameView(deltav.ui.views.BaseView):
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         pass
 
-    def on_key_press(self, key, modifiers):
-        self.camera.key(key, modifiers)
+    def on_key_press(self, k, modifiers):
+        self.camera.key(k, modifiers)
+
+        print(k)
+
+        if k == key.NUM_8:
+            self.ships[0].accelerate((0, 0, 10))
+        if k == key.NUM_2:
+            self.ships[0].accelerate((0, 0, -10))
+        if k == key.NUM_4:
+            self.ships[0].accelerate((-10, 0, 0))
+        if k == key.NUM_6:
+            self.ships[0].accelerate((10, 0, 0))
+        if k == key.NUM_5:
+            self.ships[0].accelerate((0, 10, 0))
+        if k == key.NUM_0:
+            self.ships[0].accelerate((0, -10, 0))
+
         pass
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):

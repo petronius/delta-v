@@ -90,6 +90,15 @@ class BaseShip(object):
         return tuple(self._orbit.v_position)
 
 
+    def accelerate(self, vector):
+        print("--")
+        print(self._orbit.v_velocity)
+        self._orbit.v_velocity += vector
+        print(self._orbit.v_velocity)
+        self._orbit._property_cache = {}
+        print(self._orbit.v_velocity)
+
+
 
     
 
