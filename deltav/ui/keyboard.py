@@ -10,7 +10,20 @@ from pyglet.window import key
 # that action.
 bindings = {
 
-    # Movement and player control
+    "SPEED_1": key._1,
+    "SPEED_2": key._2,
+    "SPEED_3": key._3,
+    "SPEED_4": key._4,
+    "SPEED_5": key._5,
+    "SPEED_6": key._6,
+    "SPEED_7": key._7,
+    "SPEED_8": key._8,
+    "SPEED_9": key._9,
+
+    "SHOW_SYMBOLS": key.F4,
+    "SHOW_ORBITS": key.F3,
+    "SHOW_BODIES": key.F2,
+    "SHOW_LABELS": key.F1,
     
 }
 

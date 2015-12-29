@@ -7,16 +7,18 @@ import deltav.physics.body
 import deltav.ships
 
 from pyglet.gl import *
-from pyglet.window import key
 from numpy import *
 
 from deltav.physics.orbit import pi
+from deltav.ui.keyboard import bindings as k
 
 from .view3d import View3D
 
 class GameView(deltav.ui.views.BaseView):
 
     def __init__(self):
+
+        self.speed = 1
 
         shuttle, station = (
             deltav.ships.PlayerShip("OV-103 Discovery"),
@@ -66,20 +68,35 @@ class GameView(deltav.ui.views.BaseView):
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         pass
 
-    def on_key_press(self, k, modifiers):
+    def on_key_press(self, key, modifiers):
+        print(key, k)
+        if key == k["SHOW_ORBITS"]:
+            self.view3d.show("ORBITS")
+        elif key == k["SHOW_LABELS"]:
+            self.view3d.show("LABELS")
+        elif key == k["SHOW_SYMBOLS"]:
+            self.view3d.show("SYMBOLS")
+        elif key == k["SHOW_BODIES"]:
+            self.view3d.show("BODIES")
 
-        if k == key.NUM_8:
-            self.ships[0].accelerate((0, 0, 10))
-        if k == key.NUM_2:
-            self.ships[0].accelerate((0, 0, -10))
-        if k == key.NUM_4:
-            self.ships[0].accelerate((-10, 0, 0))
-        if k == key.NUM_6:
-            self.ships[0].accelerate((10, 0, 0))
-        if k == key.NUM_5:
-            self.ships[0].accelerate((0, 10, 0))
-        if k == key.NUM_0:
-            self.ships[0].accelerate((0, -10, 0))
+        elif key == k["SPEED_1"]:
+            self.speed = 1
+        elif key == k["SPEED_2"]:
+            self.speed = 2
+        elif key == k["SPEED_3"]:
+            self.speed = 3
+        elif key == k["SPEED_4"]:
+            self.speed = 4
+        elif key == k["SPEED_5"]:
+            self.speed = 5
+        elif key == k["SPEED_6"]:
+            self.speed = 6
+        elif key == k["SPEED_7"]:
+            self.speed = 7
+        elif key == k["SPEED_8"]:
+            self.speed = 8
+        elif key == k["SPEED_9"]:
+            self.speed = 9
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # FIXME: only pass if is on viewport
@@ -87,4 +104,4 @@ class GameView(deltav.ui.views.BaseView):
 
     def tick(self):
         for ship in self.scene.get("ships", ()):
-            ship._orbit.step(10)
+            ship._orbit.step(2**self.speed)

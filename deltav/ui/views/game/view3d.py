@@ -6,6 +6,7 @@ TODO:
 - solid planets?
 - fix symbol jitter
 - @perspective/@flat class method decorators
+- Collaps draw_(ships|planets) into render()
 """
 import pyglet
 
@@ -21,11 +22,18 @@ from OpenGL.GLU import *
 
 class View3D:
 
+    ORBIT_PLOT_COUNT = 60
+
     # Scale factor for the game view, in meters
     SCALE = 1e-5
 
     FLAT="flat"
     NOFLAT="noflat"
+
+    SYMBOL_COLOR = (0, 255, 0)
+    LABEL_COLOR = (255, 255, 255, 255)
+    BODY_COLOR = (255, 0, 0)
+    ORBIT_COLOR = (0, 0, 255)
 
     def __init__(self):
 
@@ -46,6 +54,13 @@ class View3D:
         self.far = 100192
         self.fov = 60
 
+        self._show = {
+            "ORBITS": True,
+            "LABELS": True,
+            "BODIES": True,
+            "SYMBOLS": True,
+        }
+
         # GL initialization
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
@@ -65,11 +80,18 @@ class View3D:
     def render(self, scene):
         self.apply()
 
-        for ship in scene.get("ships", ()):
-            self.draw_ship(ship)
+        for ship in scene.get("ships", ()): # passing in the night
+            orbit = [self._world_to_scene(p) for p in ship._orbit.get_plot(self.ORBIT_PLOT_COUNT)]
+            self.draw_loop(orbit, self.ORBIT_COLOR)
 
-        for planet in scene.get("bodies", ()):
-            self.draw_planet(planet)
+            coords = self._world_to_scene(ship.position)
+
+            self.text(ship._name, coords)
+            self.draw_symbol(coords, self.SYMBOL_COLOR)
+
+        for planet in scene.get("bodies", ()): # rising to the surface
+            r = planet.radius * self.SCALE
+            self.draw_sphere(planet.position, r, self.BODY_COLOR)
 
         # Reset when we're done, for other rendering actions that need the
         # default pyglet behaviour
@@ -78,6 +100,8 @@ class View3D:
         glOrtho(0, self.w, 0, self.h, -1, 1)
         glMatrixMode(GL_MODELVIEW)
 
+    def show(self, k):
+        self._show[k] = not self._show[k]
     #
     # Rendering setup
     #
@@ -145,30 +169,16 @@ class View3D:
         self.z += delta*20
 
     #
-    # Drawing functions. Needs cleanup
+    # Drawing functions.
     #
-
-    def draw_planet(self, planet, pts=30, color=(255,0,0)):
-
-        r = planet.radius * self.SCALE
-
-        self.draw_sphere(planet.position, r, color)
-
-
-    def draw_ship(self, ship, orbit_color=(0,0,255), ship_color=(0,0,255)):
-
-        orbit = [self._world_to_scene(p) for p in ship._orbit.get_plot(60)]
-        self.draw_loop(orbit, orbit_color)
-
-        coords = self._world_to_scene(ship.position)
-
-        self.text(ship._name, coords)
-        self.draw_symbol(coords, ship_color)
 
     def text(self, s, coords):
         """
         Add text in the scene
         """
+
+        if not self._show["LABELS"]:
+            return
 
         x, y, _ = self._scene_to_screen(coords)
 
@@ -179,7 +189,8 @@ class View3D:
             x = x + 10,
             y = y,
             anchor_x = "left",
-            anchor_y = "top"
+            anchor_y = "top",
+            color = self.LABEL_COLOR
         ).draw()
 
 
@@ -187,6 +198,10 @@ class View3D:
         """
         Draw a flat symbol
         """
+
+        if not self._show["SYMBOLS"]:
+            return
+
         x, y, _ = self._scene_to_screen(coords)
 
         a = (x, y+offset)
@@ -201,6 +216,10 @@ class View3D:
 
 
     def draw_loop(self, verticies, color):
+
+        if not self._show["ORBITS"]:
+            return
+
         # Set up for more rendering
         self._perspective()
 
@@ -212,6 +231,10 @@ class View3D:
 
 
     def draw_sphere(self, coords, radius, color):
+
+        if not self._show["BODIES"]:
+            return
+
         self._perspective()
 
         stacks = slices = 20
