@@ -1,5 +1,0 @@
-setup.py
-deltav.egg-info/PKG-INFO
-deltav.egg-info/SOURCES.txt
-deltav.egg-info/dependency_links.txt
-deltav.egg-info/top_level.txt
