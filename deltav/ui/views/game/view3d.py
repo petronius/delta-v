@@ -1,7 +1,21 @@
+"""
+Handle all 3D drawing for the game view.
 
+TODO:
+- store ship/symbol/orbit colors on class
+- solid planets?
+- fix symbol jitter
+- @perspective/@flat class method decorators
+"""
 import pyglet
 
 import deltav.ui
+
+import OpenGL
+# Has to be set before more imports
+OpenGL.ERROR_CHECKING = deltav.configure.DEBUG
+from OpenGL.GL import *
+from OpenGL.GLU import *
 
 
 
@@ -32,6 +46,7 @@ class View3D:
         self.far = 100192
         self.fov = 60
 
+        # GL initialization
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glDepthFunc(GL_LEQUAL)
@@ -104,24 +119,14 @@ class View3D:
         """
         x, y, _ = coords
         self._perspective() # reset before doing any maths
-        # Ugh, C in Python...
-        viewport = (GLint * 4)()
-        pmat = (GLdouble * 16)()
-        mmat = (GLdouble * 16)()
 
-        nx = (GLdouble)()
-        ny = (GLdouble)()
-        nz = (GLdouble)()
+        mmat = glGetDoublev(GL_MODELVIEW_MATRIX)
+        pmat = glGetDoublev(GL_PROJECTION_MATRIX)
+        viewport = glGetIntegerv(GL_VIEWPORT)
         
-        x, y, z = map(int, (x, y, _))
-        
-        glGetDoublev(GL_MODELVIEW_MATRIX, mmat)
-        glGetDoublev(GL_PROJECTION_MATRIX, pmat)
-        glGetIntegerv(GL_VIEWPORT, viewport)
-        
-        gluProject(x, y, _, mmat, pmat, viewport, nx, ny, nz)
+        x, y, _ = gluProject(x, y, _, mmat, pmat, viewport)
 
-        return nx.value, ny.value, 0
+        return x, y, 0
 
     def drag(self, dx, dy, button):
         """ Mouse drag event handler.
@@ -209,8 +214,7 @@ class View3D:
     def draw_sphere(self, coords, radius, color):
         self._perspective()
 
-        slices = (GLint)(20)
-        stacks = (GLint)(20)
+        stacks = slices = 20
 
         glColor3f(*color)
         q = gluNewQuadric()
