@@ -9,6 +9,7 @@ TODO:
 - Collaps draw_(ships|planets) into render()
 """
 import pyglet
+import numpy
 
 import deltav.ui
 
@@ -25,7 +26,7 @@ class View3D:
     ORBIT_PLOT_COUNT = 60
 
     # Scale factor for the game view, in meters
-    SCALE = 1e-5
+    SCALE = 1e-3
 
     FLAT="flat"
     NOFLAT="noflat"
@@ -35,7 +36,7 @@ class View3D:
     BODY_COLOR = (255, 0, 0)
     ORBIT_COLOR = (0, 0, 255)
 
-    def __init__(self):
+    def __init__(self, game_view):
 
         self.w = deltav.ui.game_window.width
         self.h = deltav.ui.game_window.height
@@ -51,7 +52,7 @@ class View3D:
         self.rz = 0
 
         self.near = 0.1
-        self.far = 100192
+        self.far = 10000000
         self.fov = 60
 
         self._show = {
@@ -65,6 +66,13 @@ class View3D:
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glDepthFunc(GL_LEQUAL)
+
+        self.center_on(game_view.player.position)
+
+    def center_on(self, coords):
+        x, y, z = map(lambda x: x*self.SCALE, coords)
+        self.center = numpy.array([x, y, z])
+
 
     def apply(self):
         """ Apply camera transformation.
@@ -91,7 +99,8 @@ class View3D:
 
         for planet in scene.get("bodies", ()): # rising to the surface
             r = planet.radius * self.SCALE
-            self.draw_sphere(planet.position, r, self.BODY_COLOR)
+            p = self._world_to_scene(planet.position)
+            self.draw_sphere(p, r, self.BODY_COLOR)
 
         # Reset when we're done, for other rendering actions that need the
         # default pyglet behaviour
@@ -122,7 +131,7 @@ class View3D:
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        glOrtho(0, self.w, 0, self.h, 0, self.far)
+        glOrtho(0, self.w, 0, self.h, -1, 2)
         glMatrixMode(GL_MODELVIEW)
 
         self.apply()
@@ -135,22 +144,23 @@ class View3D:
         """
         Convert physics coordinates to render coordinates.
         """
-        return tuple(map(lambda x: x*self.SCALE, coords))
+        result = self.center - tuple(map(lambda x: x*self.SCALE, coords))
+        return tuple(result)
 
     def _scene_to_screen(self, coords):
         """
         Rotate world coordinates x, y to screen coordinates
         """
-        x, y, _ = coords
+        x, y, z = coords
         self._perspective() # reset before doing any maths
 
         mmat = glGetDoublev(GL_MODELVIEW_MATRIX)
         pmat = glGetDoublev(GL_PROJECTION_MATRIX)
         viewport = glGetIntegerv(GL_VIEWPORT)
         
-        x, y, _ = gluProject(x, y, _, mmat, pmat, viewport)
+        x, y, z = gluProject(x, y, z, mmat, pmat, viewport)
 
-        return x, y, 0
+        return x, y, z
 
     def drag(self, dx, dy, button):
         """ Mouse drag event handler.
@@ -159,14 +169,13 @@ class View3D:
             self.x -= dx*2
             self.y -= dy*2
         elif button == 2:
-            self.x -= dx*2
-            self.z -= dy*2
+            self.z += dy*100
         elif button == 4:
             self.ry += dx/4.
             self.rx -= dy/4.
 
     def scroll(self, delta):
-        self.z += delta*20
+        self.z += delta*100
 
     #
     # Drawing functions.
@@ -180,18 +189,21 @@ class View3D:
         if not self._show["LABELS"]:
             return
 
-        x, y, _ = self._scene_to_screen(coords)
+        x, y, z = self._scene_to_screen(coords)
 
-        self._flat()
+        if z < 1:
 
-        pyglet.text.Label(s,
-            font_size=10,
-            x = x + 10,
-            y = y,
-            anchor_x = "left",
-            anchor_y = "top",
-            color = self.LABEL_COLOR
-        ).draw()
+            self._flat()
+
+            pyglet.text.Label(s,
+                font_size=10,
+                x = x + 10,
+                y = y,
+                anchor_x = "left",
+                anchor_y = "top",
+                color = self.LABEL_COLOR,
+                font_name = "Mono",
+            ).draw()
 
 
     def draw_symbol(self, coords, color, offset=5):
@@ -202,15 +214,15 @@ class View3D:
         if not self._show["SYMBOLS"]:
             return
 
-        x, y, _ = self._scene_to_screen(coords)
+        x, y, z = self._scene_to_screen(coords)
 
-        a = (x, y+offset)
-        b = (x+offset, y)
-        c = (x-offset, y)
+        a = (x, y+offset, z)
+        b = (x+offset, y, z)
+        c = (x-offset, y, z)
 
         self._flat()
         pyglet.graphics.draw(3, pyglet.gl.GL_TRIANGLES,
-            ('v2f', a + b + c),
+            ('v3f', a + b + c),
             ('c3B', color*3),
         )
 
@@ -244,7 +256,7 @@ class View3D:
         gluQuadricNormals(q, GLU_NONE)
         gluQuadricDrawStyle(q, GLU_LINE)
         gluQuadricTexture(q, GL_TRUE)
-        glTranslatef(0.0,0.0,0.0)
+        glTranslatef(*coords)
         glRotatef(90, 1, 0, 0)
         gluSphere(q, radius, slices, stacks)
 

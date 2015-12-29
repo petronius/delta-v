@@ -4,12 +4,12 @@ import pyglet
 
 import deltav.ui
 import deltav.physics.body
-import deltav.ships
 
 from pyglet.gl import *
 from numpy import *
 
 from deltav.physics.orbit import pi
+from deltav.ships import MobShip, PlayerShip
 from deltav.ui.keyboard import bindings as k
 
 from .view3d import View3D
@@ -20,9 +20,22 @@ class GameView(deltav.ui.views.BaseView):
 
         self.speed = 1
 
+        planet = deltav.physics.body.Body(5.972e24, 6371000) 
+
+        self.player = PlayerShip("SASE C-3402 黄河 Yellow River")
+        self.player.orbit(planet, (
+            9.01e3 * 1000,
+            0,
+            -2e03 * 1000,
+        ), (
+            4.628784989010491E+00 * 1000,
+            4.718224103100249E+00 * 1000,
+            4.457710395445335E+00 * 1000,
+        ))
+
         shuttle, station = (
-            deltav.ships.PlayerShip("OV-103 Discovery"),
-            deltav.ships.MobShip("ISS"),
+            MobShip("OV-103 Discovery"),
+            MobShip("ISS"),
         )
 
         v_position = (
@@ -37,19 +50,17 @@ class GameView(deltav.ui.views.BaseView):
             3.457710395445335E+00 * 1000,
         )
 
-        planet = deltav.physics.body.Body(5.972e24, 6371000) 
-
         station.orbit(planet, v_position, v_velocity)
         shuttle.orbit(planet, tuple(map(lambda x : x*1.3, v_position)), tuple(map(lambda x : x, v_velocity)))
 
-        ships = (shuttle, station,)
+        ships = (shuttle, station, self.player)
 
         self.scene = {
             "ships": ships,
             "bodies": (planet,),
         }
 
-        self.view3d = View3D()
+        self.view3d = View3D(self)
 
 
     def load(self):
@@ -69,7 +80,6 @@ class GameView(deltav.ui.views.BaseView):
         pass
 
     def on_key_press(self, key, modifiers):
-        print(key, k)
         if key == k["SHOW_ORBITS"]:
             self.view3d.show("ORBITS")
         elif key == k["SHOW_LABELS"]:
@@ -105,3 +115,4 @@ class GameView(deltav.ui.views.BaseView):
     def tick(self):
         for ship in self.scene.get("ships", ()):
             ship._orbit.step(2**self.speed)
+        self.view3d.center_on(self.player.position)
