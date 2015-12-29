@@ -71,7 +71,7 @@ class GameWindow(pyglet.window.Window):
         
         self.resizeable = False
 
-        self.fps_display = pyglet.clock.ClockDisplay()
+        self.fps_display = pyglet.window.FPSDisplay(self)
 
     def set_view(self, view):
         """

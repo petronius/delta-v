@@ -1,39 +1,72 @@
 
 import pyglet
 
-from pyglet.gl import *
-from pyglet.window import key
-
-from numpy import *
-from deltav.physics.helpers import Rx, Ry, Rz
+import deltav.ui
 
 
-class Camera:
-    """ A camera.
-    """
-    mode = 1
-    rx, ry, rz = 0, 0, 0
-    near = 0.1
-    far = 100192
-    fov = 60
+
+class View3D:
+
+    # Scale factor for the game view, in meters
+    SCALE = 1e-5
 
     FLAT="flat"
     NOFLAT="noflat"
 
-    def __init__(self, w, h):
+    def __init__(self):
 
-        self.w = w
-        self.h = h
+        self.w = deltav.ui.game_window.width
+        self.h = deltav.ui.game_window.height
 
         self.x = 0.0
         self.y = 0.0
         self.z = 512
 
+        self.mode = self.NOFLAT
+        
+        self.rx = 0
+        self.ry = 0
+        self.rz = 0
+
+        self.near = 0.1
+        self.far = 100192
+        self.fov = 60
+
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glDepthFunc(GL_LEQUAL)
 
-    # functions for setting up drawing
+    def apply(self):
+        """ Apply camera transformation.
+        """
+        glLoadIdentity()
+        if self.mode == self.FLAT:
+            return
+        glTranslatef(-self.x, -self.y, -self.z)
+        glRotatef(self.rx, 1, 0, 0)
+        glRotatef(self.ry, 0, 1, 0)
+        glRotatef(self.rz, 0, 0, 1)
+
+    def render(self, scene):
+        self.apply()
+
+        for ship in scene.get("ships", ()):
+            self.draw_ship(ship)
+
+        for planet in scene.get("bodies", ()):
+            self.draw_planet(planet)
+
+        # Reset when we're done, for other rendering actions that need the
+        # default pyglet behaviour
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glOrtho(0, self.w, 0, self.h, -1, 1)
+        glMatrixMode(GL_MODELVIEW)
+
+    #
+    # Rendering setup
+    #
+    
     def _perspective(self):
         self.mode = self.NOFLAT
         glMatrixMode(GL_PROJECTION)
@@ -55,10 +88,21 @@ class Camera:
 
         self.apply()
 
-    def _rotate(self, x, y, _):
+    #
+    # Coordinate mapping
+    #
+
+    def _world_to_scene(self, coords):
+        """
+        Convert physics coordinates to render coordinates.
+        """
+        return tuple(map(lambda x: x*self.SCALE, coords))
+
+    def _scene_to_screen(self, coords):
         """
         Rotate world coordinates x, y to screen coordinates
         """
+        x, y, _ = coords
         self._perspective() # reset before doing any maths
         # Ugh, C in Python...
         viewport = (GLint * 4)()
@@ -77,13 +121,9 @@ class Camera:
         
         gluProject(x, y, _, mmat, pmat, viewport, nx, ny, nz)
 
-        return nx.value, ny.value
+        return nx.value, ny.value, 0
 
-    def key(self, symbol, modifiers):
-        """ Key pressed event handler.
-        """
-
-    def drag(self, x, y, dx, dy, button, modifiers):
+    def drag(self, dx, dy, button):
         """ Mouse drag event handler.
         """
         if button == 1:
@@ -99,24 +139,33 @@ class Camera:
     def scroll(self, delta):
         self.z += delta*20
 
-    def apply(self):
-        """ Apply camera transformation.
-        """
-        glLoadIdentity()
-        if self.mode == self.FLAT:
-            return
-        glTranslatef(-self.x, -self.y, -self.z)
-        glRotatef(self.rx, 1, 0, 0)
-        glRotatef(self.ry, 0, 1, 0)
-        glRotatef(self.rz, 0, 0, 1)
+    #
+    # Drawing functions. Needs cleanup
+    #
 
+    def draw_planet(self, planet, pts=30, color=(255,0,0)):
+
+        r = planet.radius * self.SCALE
+
+        self.draw_sphere(planet.position, r, color)
+
+
+    def draw_ship(self, ship, orbit_color=(0,0,255), ship_color=(0,0,255)):
+
+        orbit = [self._world_to_scene(p) for p in ship._orbit.get_plot(60)]
+        self.draw_loop(orbit, orbit_color)
+
+        coords = self._world_to_scene(ship.position)
+
+        self.text(ship._name, coords)
+        self.draw_symbol(coords, ship_color)
 
     def text(self, s, coords):
         """
         Add text in the scene
         """
 
-        x, y = self._rotate(*coords)
+        x, y, _ = self._scene_to_screen(coords)
 
         self._flat()
 
@@ -133,7 +182,7 @@ class Camera:
         """
         Draw a flat symbol
         """
-        x, y = self._rotate(*coords)
+        x, y, _ = self._scene_to_screen(coords)
 
         a = (x, y+offset)
         b = (x+offset, y)
