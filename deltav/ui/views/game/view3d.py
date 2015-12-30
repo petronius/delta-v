@@ -26,7 +26,7 @@ class View3D:
     ORBIT_PLOT_COUNT = 60
 
     # Scale factor for the game view, in meters
-    SCALE = 1e-3
+    SCALE = 1e-5
 
     FLAT="flat"
     NOFLAT="noflat"
@@ -36,10 +36,9 @@ class View3D:
     BODY_COLOR = (255, 0, 0)
     ORBIT_COLOR = (0, 0, 255)
 
-    def __init__(self, game_view):
+    def __init__(self, game_view, bounds):
 
-        self.w = deltav.ui.game_window.width
-        self.h = deltav.ui.game_window.height
+        self.bx, self.by, self.w, self.h = bounds
 
         self.x = 0.0
         self.y = 0.0
@@ -104,9 +103,11 @@ class View3D:
 
         # Reset when we're done, for other rendering actions that need the
         # default pyglet behaviour
+        width, height = deltav.ui.game_window.width, deltav.ui.game_window.height
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        glOrtho(0, self.w, 0, self.h, -1, 1)
+        glViewport(0, 0, width, height)
+        glOrtho(0, width, 0, height, -1, 1)
         glMatrixMode(GL_MODELVIEW)
 
     def show(self, k):
@@ -119,6 +120,7 @@ class View3D:
         self.mode = self.NOFLAT
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
+        glViewport(self.bx, self.by, self.w, self.h)
         gluPerspective(self.fov, self.w/self.h, self.near, self.far)
         glMatrixMode(GL_MODELVIEW)
 
@@ -131,6 +133,7 @@ class View3D:
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
+        glViewport(self.bx, self.by, self.w, self.h)
         glOrtho(0, self.w, 0, self.h, -1, 2)
         glMatrixMode(GL_MODELVIEW)
 
@@ -159,6 +162,9 @@ class View3D:
         viewport = glGetIntegerv(GL_VIEWPORT)
         
         x, y, z = gluProject(x, y, z, mmat, pmat, viewport)
+
+        x -= self.bx
+        y -= self.by
 
         return x, y, z
 

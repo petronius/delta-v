@@ -60,7 +60,14 @@ class GameView(deltav.ui.views.BaseView):
             "bodies": (planet,),
         }
 
-        self.view3d = View3D(self)
+        self.view3d = View3D(self,
+            (
+             5,
+             deltav.ui.game_window.height//2 + 5,
+             deltav.ui.game_window.width//2 - 10,
+             deltav.ui.game_window.height//2 -10,
+            )
+        )
 
 
     def load(self):
