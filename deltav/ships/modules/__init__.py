@@ -2,8 +2,12 @@ from physics.body import Body
 
 class BaseModule(Body):
 
+    NAME = "<BaseModule>"
+
     def __init__(self):
         super(BaseModule, self).__init__()
+
+        self.is_active = True
 
         self.hp = 0
 
@@ -31,10 +35,12 @@ class BaseModule(Body):
         }
 
     def activate(self):
-        raise NotImplementedError()
+        self.is_active = True
+        return self.is_active
 
     def deactivate(self):
-        raise NotImplementedError()
+        self.is_active = False
+        return self.is_active
 
     def on_destruct(self):
         raise NotImplementedError()
@@ -45,8 +51,14 @@ class BaseModule(Body):
 
 class EmptyModule(BaseModule):
 
+    NAME = "(missing sys ctl)"
+
+    def __init__(self):
+        super(EmptyModule, self).__init__()
+        self.is_active = False
+
     def activate(self):
-        pass
+        return False
 
     def deactivate(self):
         pass

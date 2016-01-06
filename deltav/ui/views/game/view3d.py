@@ -36,6 +36,8 @@ class View3D:
     BODY_COLOR = (255, 0, 0)
     ORBIT_COLOR = (0, 0, 255)
 
+    FONT_FACE="Droid Sans Mono"
+
     def __init__(self, game_view, bounds):
 
         self.bx, self.by, self.w, self.h = bounds
@@ -107,8 +109,9 @@ class View3D:
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         glViewport(0, 0, width, height)
-        glOrtho(0, width, 0, height, -1, 1)
+        glOrtho(0, width, 0, height, -1, 2)
         glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
 
     def show(self, k):
         self._show[k] = not self._show[k]
@@ -201,14 +204,13 @@ class View3D:
 
             self._flat()
 
-            pyglet.text.Label(s,
-                font_size=10,
+            s = '<font face="%s" size="1" color="#FFFFFF">%s</font>' % (self.FONT_FACE, s)
+
+            pyglet.text.HTMLLabel(s,
                 x = x + 10,
                 y = y,
                 anchor_x = "left",
                 anchor_y = "top",
-                color = self.LABEL_COLOR,
-                font_name = "Mono",
             ).draw()
 
 

@@ -13,16 +13,20 @@ from deltav.ships import MobShip, PlayerShip
 from deltav.ui.keyboard import bindings as k
 
 from .view3d import View3D
+from .panels import status as StatusPanel
+from .panels import nav as NavPanel
 
 class GameView(deltav.ui.views.BaseView):
 
     def __init__(self):
 
+        self.ui_batch = pyglet.graphics.Batch()
+
         self.speed = 1
 
         planet = deltav.physics.body.Body(5.972e24, 6371000) 
 
-        self.player = PlayerShip("SASE C-3402 黄河 Yellow River")
+        self.player = PlayerShip('SASE C-3402 <font face="Droid Sans Fallback">黄河</font> Yellow River')
         self.player.orbit(planet, (
             9.01e3 * 1000,
             0,
@@ -69,6 +73,14 @@ class GameView(deltav.ui.views.BaseView):
             )
         )
 
+        self.panels = (
+            StatusPanel,
+            NavPanel,
+        )
+
+        for panel in self.panels:
+            panel.load(deltav.ui.game_window, self.ui_batch, self.player)
+
 
     def load(self):
         pass
@@ -78,6 +90,7 @@ class GameView(deltav.ui.views.BaseView):
 
     def on_draw(self):
         self.view3d.render(self.scene)
+        self.ui_batch.draw()
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         # FIXME: only pass if is on viewport
@@ -122,4 +135,6 @@ class GameView(deltav.ui.views.BaseView):
     def tick(self):
         for ship in self.scene.get("ships", ()):
             ship._orbit.step(2**self.speed)
+        for panel in self.panels:
+            panel.update()
         self.view3d.center_on(self.player.position)

@@ -1,5 +1,8 @@
 
 from .modules import EmptyModule
+from .modules.power import *
+from .modules.weapons import *
+
 from deltav.physics.orbit import Orbit
 
 #
@@ -21,7 +24,7 @@ class BaseShip(object):
         self._internal_space = 0
 
         self.modules = {
-            "powersrc": EmptyModule(),
+            "powersrc": FusionCore(),
             "computer": EmptyModule(),
 
             "shielding": EmptyModule(),

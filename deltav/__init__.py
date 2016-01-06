@@ -5,11 +5,14 @@ Dirty visualisation glue code
 import pyglet
 
 import deltav.app
+import deltav.assetloader
 import deltav.ui
 
 from deltav.ui.views.game import GameView
 
 if __name__ == "__main__":
+
+    deltav.assetloader.load_fonts()
 
     deltav.app.init()
     deltav.ui.init()
