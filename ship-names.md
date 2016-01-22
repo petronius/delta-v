@@ -5,6 +5,7 @@
 * ESEC William Kidd
 * ESEC Estelle
 * ESEC Abram Petrovich Gannibal
+* ESEC De Zeven Provinciën
 
 * ACSA Young Teazer's Ghost
 * ACSA T Kieth Glennan
