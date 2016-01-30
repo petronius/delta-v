@@ -3,6 +3,9 @@ Two-body Keplarian orbit modelling.
 """
 
 #TODO: https://en.wikipedia.org/wiki/Hill_sphere
+# TODO: clear plot and is_* properties only during acceleration, not on every
+#       position update
+# TODO: move to just mpmath?
 
 from math import floor
 from numpy import (
@@ -18,6 +21,7 @@ from numpy import (
     pi, NaN, Inf,
     sqrt,
     sign,
+    floor,
     cos, arccos, cosh, arccosh,
     sin, arcsin, sinh,
     tan, arctan, arctan2,
@@ -26,8 +30,11 @@ from numpy import (
     inner,
     cross,
     newaxis,
+    log,
 )
 from numpy.linalg import norm
+# not provided by numpy, for reasons which are opaque to me
+from mpmath import cot
 import textwrap
 
 from .helpers import kepler, keplerh, Rx, Rz, Ry
@@ -102,6 +109,7 @@ class Orbit(object):
 
     # Maximum number of radians in a circle
     _2PI = 2 * pi
+    _HPI = .5 * pi
 
     # unit vectors for axes x, y, z
     I = array([1.0, 0.0, 0.0])
@@ -110,7 +118,7 @@ class Orbit(object):
 
     # Used for comparisons, because of floating point rounding error
     ONE = float128("1.0")
-    ACCURACY = float128("1e-12")
+    ACCURACY = float128("1e-8")
 
 
     def __init__(self, parent, satellite, v_position, v_velocity):
@@ -119,8 +127,8 @@ class Orbit(object):
         self.v_position = array(v_position)
         self.v_velocity = array(v_velocity)
 
-        self.mag_position = self.mag_position
-        self.mag_veloctiy = norm(self.v_veloctiy)
+        self.mag_position = norm(self.v_position)
+        self.mag_velocity = norm(self.v_velocity)
 
         self.propery_cache = {}
 
@@ -143,6 +151,7 @@ class Orbit(object):
             self.v_velocity[1] + vector[1],
             self.v_velocity[2] + vector[2],
         ])
+        del self.propery_cache["_plot"]
 
     #
     # Define properties for the classical orbital elements
@@ -154,6 +163,13 @@ class Orbit(object):
         Gravitational parameter (2-body)
         """
         return self.G * self.parent.mass
+
+    @cached_property
+    def specific_mechanical_energy(self):
+        """
+        Specific mechanical energy of the orbit (ξ)
+        """
+        return (self.mag_velocity**2/2) - (self.gravitational_parameter / self.mag_position)
 
 
     @cached_property
@@ -200,118 +216,128 @@ class Orbit(object):
             return e
 
 
-    @cached_property
-    def v_node(self):
-        """
-        Node (of ascension) vector (m**2 / s) (n')
-        """
-        result = cross(self.K, self.v_angular_momentum)
-        #
-        # "For non-inclined orbits (with inclination equal to zero), Ω is 
-        #  undefined. For computation it is then, by convention, set equal to 
-        #  zero; that is, the ascending node is placed in the reference 
-        #  direction, which is equivalent to letting n point towards the 
-        #  positive x-axis."
-        #
-        #  https://en.wikipedia.org/wiki/Longitude_of_the_ascending_node
-        #
-        if (result == array([0,0,0])).all():
-            return self.K
-        return result
+    # @cached_property
+    # def v_node(self):
+    #     """
+    #     Node (of ascension) vector (m**2 / s) (n')
+    #     """
+    #     result = cross(self.K, self.v_angular_momentum)
+    #     #
+    #     # "For non-inclined orbits (with inclination equal to zero), Ω is 
+    #     #  undefined. For computation it is then, by convention, set equal to 
+    #     #  zero; that is, the ascending node is placed in the reference 
+    #     #  direction, which is equivalent to letting n point towards the 
+    #     #  positive x-axis."
+    #     #
+    #     #  https://en.wikipedia.org/wiki/Longitude_of_the_ascending_node
+    #     #
+    #     if (result == array([0,0,0])).all():
+    #         return self.K
+    #     return result
+
+
+    # @cached_property
+    # def node(self):
+    #     """
+    #     Magniture of the node vector. (n)
+    #     """
+    #     return self.node
+
+
+    # @cached_property
+    # def true_anomaly(self):
+    #     """
+    #     True anomaly (angle from the focus at the barycentre of the orbit, ν).
+    #     """
+    #     res = (
+    #         dot(self.v_eccentricity, self.v_position)
+    #         /
+    #         (self.eccentricity*self.mag_position)
+    #     )
+    #     if self.eq(res, 1.0):
+    #         res = 1.0
+    #     true_anomaly = arccos(res)
+    #     if self.lt(dot(self.v_position, self.v_velocity), 0.0):
+    #         true_anomaly = 2.0 * pi - true_anomaly
+    #     return true_anomaly
+
+
+    # @cached_property
+    # def inclination(self):
+    #     """
+    #     Inclination of the orbit (i).
+    #     """
+    #     return arccos(
+    #         self.v_angular_momentum[2]
+    #         /
+    #         self.angular_momentum
+    #     )
+
+
+    # @cached_property
+    # def eccentric_anomaly(self):
+    #     """
+    #     Like the true anomaly, but measured about the center of the ellipse.
+
+    #     (E for elliptical orbits. D, F for hyperbolic and parabolic.)
+    #     """
+    #     if self.is_circular:
+    #         return self.true_anomaly
+    #     elif self.is_elliptical:
+    #         return 2.0 * arctan(
+    #             tan(self.true_anomaly/2.0)
+    #             /
+    #             sqrt((1.0 + self.eccentricity) / (1 - self.eccentricity))
+    #         )
+    #     elif self.is_parabolic:
+    #         # "D"
+    #         return tan(true_anomaly/2.0)
+    #     elif self.is_hyperbolic:
+    #         # F
+    #         return arccosh(
+    #             (self.eccentricity + cos(self.true_anomaly))
+    #             /
+    #             (1.0 + self.eccentricity * cos(self.true_anomaly))
+    #         )
+    #     else:
+    #         raise Exception("Are you in the right spacetime?")
+
+
+    # @cached_property
+    # def long_of_asc_node(self):
+    #     """
+    #     Longitude of the ascending node (Ω).
+    #     """
+    #     long_of_asc_node = arccos(self.v_node[0]/self.node)
+    #     if self.lt(self.v_node[1], 0):
+    #         long_of_asc_node = 2.0 * pi - long_of_asc_node
+    #     return long_of_asc_node
+
+
+    # @cached_property
+    # def argument_of_periapsis(self):
+    #     """
+    #     Argument of periapsis (ω).
+    #     """
+    #     argument_of_periapsis = arccos(
+    #         dot(self.v_node, self.v_eccentricity)
+    #         /
+    #         (self.node*self.eccentricity)
+    #     )
+    #     if self.lt(self.v_eccentricity[2], 0):
+    #         argument_of_periapsis = 2.0 * pi - argument_of_periapsis
+    #     return argument_of_periapsis
 
 
     @cached_property
-    def node(self):
+    def _alpha(self):
         """
-        Magniture of the node vector. (n)
+        Used solely for calculation purposes.
         """
-        return self.node
-
-
-    @cached_property
-    def true_anomaly(self):
-        """
-        True anomaly (angle from the focus at the barycentre of the orbit, ν).
-        """
-        res = (
-            dot(self.v_eccentricity, self.v_position)
-            /
-            (self.eccentricity*self.mag_position)
-        )
-        if self.eq(res, 1.0):
-            res = 1.0
-        true_anomaly = arccos(res)
-        if self.lt(dot(self.v_position, self.v_velocity), 0.0):
-            true_anomaly = 2.0 * pi - true_anomaly
-        return true_anomaly
-
-
-    @cached_property
-    def inclination(self):
-        """
-        Inclination of the orbit (i).
-        """
-        return arccos(
-            self.v_angular_momentum[2]
-            /
-            self.angular_momentum
-        )
-
-
-    @cached_property
-    def eccentric_anomaly(self):
-        """
-        Like the true anomaly, but measured about the center of the ellipse.
-
-        (E for elliptical orbits. D, F for hyperbolic and parabolic.)
-        """
-        if self.is_circular:
-            return self.true_anomaly
-        elif self.is_elliptical:
-            return 2.0 * arctan(
-                tan(self.true_anomaly/2.0)
-                /
-                sqrt((1.0 + self.eccentricity) / (1 - self.eccentricity))
-            )
-        elif self.is_parabolic:
-            # "D"
-            return tan(true_anomaly/2.0)
-        elif self.is_hyperbolic:
-            # F
-            return arccosh(
-                (self.eccentricity + cos(self.true_anomaly))
-                /
-                (1.0 + self.eccentricity * cos(self.true_anomaly))
-            )
-        else:
-            raise Exception("Are you in the right spacetime?")
-
-
-    @cached_property
-    def long_of_asc_node(self):
-        """
-        Longitude of the ascending node (Ω).
-        """
-        long_of_asc_node = arccos(self.v_node[0]/self.node)
-        if self.lt(self.v_node[1], 0):
-            long_of_asc_node = 2.0 * pi - long_of_asc_node
-        return long_of_asc_node
-
-
-    @cached_property
-    def argument_of_periapsis(self):
-        """
-        Argument of periapsis (ω).
-        """
-        argument_of_periapsis = arccos(
-            dot(self.v_node, self.v_eccentricity)
-            /
-            (self.node*self.eccentricity)
-        )
-        if self.lt(self.v_eccentricity[2], 0):
-            argument_of_periapsis = 2.0 * pi - argument_of_periapsis
-        return argument_of_periapsis
-
+        alpha = -self.specific_mechanical_energy * 2.0/self.gravitational_parameter
+        if abs(alpha) < self.ACCURACY:
+            return 0
+        return alpha
 
     @cached_property
     def semi_major_axis(self):
@@ -319,9 +345,7 @@ class Orbit(object):
         Calculate the semi-major axis (a).
         """
         if not self.is_parabolic:
-            # elliptical and hyperbolic
-            zeta = (self.mag_velocity**2/2) - self.gravitational_parameter/self.mag_position
-            return -self.gravitational_parameter/(2*zeta)
+            return 1/self._alpha
         else:
             return Inf
 
@@ -331,45 +355,44 @@ class Orbit(object):
         """
         The orbital period in seconds. (P)
         """
-        # https://en.wikipedia.org/wiki/Orbital_period#Small_body_orbiting_a_central_body
         if self.is_elliptical:
             return 2.0 * pi * sqrt(
-                self.semi_major_axis**3.0 / self.gravitational_parameter
+                abs(self.semi_major_axis)**3.0 / self.gravitational_parameter
             )
         else:
             return None
 
 
-    @cached_property
-    def mean_anomaly(self):
-        """
-        Mean anomaly. (M)
-        """
-        if self.is_circular:
-            return self.eccentric_anomaly
-        elif self.is_elliptical:
-            return self.eccentric_anomaly - (
-                self.eccentricity * sin(self.eccentric_anomaly)
-            )
-        elif self.is_parabolic:
-            return self.eccentric_anomaly + self.eccentric_anomaly**3.0/3.0
-        elif self.is_hyperbolic:
-            return self.eccentricity * sinh(self.eccentric_anomaly) - self.eccentric_anomaly
+    # @cached_property
+    # def mean_anomaly(self):
+    #     """
+    #     Mean anomaly. (M)
+    #     """
+    #     if self.is_circular:
+    #         return self.eccentric_anomaly
+    #     elif self.is_elliptical:
+    #         return self.eccentric_anomaly - (
+    #             self.eccentricity * sin(self.eccentric_anomaly)
+    #         )
+    #     elif self.is_parabolic:
+    #         return self.eccentric_anomaly + self.eccentric_anomaly**3.0/3.0
+    #     elif self.is_hyperbolic:
+    #         return self.eccentricity * sinh(self.eccentric_anomaly) - self.eccentric_anomaly
 
 
-    @cached_property
-    def periapsis_distance(self):
-        """
-        Distance from the periapsis at the current moment.
-        """
-        # http://www.bogan.ca/orbits/kepler/orbteqtn.html
-        # http://scienceworld.wolfram.com/physics/SemilatusRectum.html
-        if self.is_circular:
-            return self.semi_major_axis
-        elif self.is_parabolic:
-            return self.angular_momentum**2.0 / self.gravitational_parameter * .5
-        else:
-            return self.semi_major_axis * (1.0 - self.eccentricity)
+    # @cached_property
+    # def periapsis_distance(self):
+    #     """
+    #     Distance from the periapsis at the current moment.
+    #     """
+    #     # http://www.bogan.ca/orbits/kepler/orbteqtn.html
+    #     # http://scienceworld.wolfram.com/physics/SemilatusRectum.html
+    #     if self.is_circular:
+    #         return self.semi_major_axis
+    #     elif self.is_parabolic:
+    #         return self.angular_momentum**2.0 / self.gravitational_parameter * .5
+    #     else:
+    #         return self.semi_major_axis * (1.0 - self.eccentricity)
 
 
     @cached_property
@@ -420,137 +443,204 @@ class Orbit(object):
     # Coordinate bullshit
     #
 
-    @staticmethod
-    def rotate(vector, O, i, w):
+    # @staticmethod
+    # def rotate(vector, O, i, w):
+    #     """
+    #     Peform a rotation on *vector* using the angles *Ω*, *i*, and *ω*.
+    #     """
+    #     vector = vector[:, newaxis]
+    #     res = (Rz(-O) * Rx(-i) * Rz(-w)).dot(vector)
+    #     return squeeze(asarray(res))
+
+
+    # @classmethod
+    # def reverse(cls,
+    #         semi_latus_rectum,       # p
+    #         eccentricity,            # e
+    #         inclination,             # i
+    #         long_of_asc_node,        # Ω
+    #         argument_of_periapsis,   # ω
+    #         true_anomaly,            # ν
+    #         gravitational_parameter, # μ
+    #     ):
+
+    #     # based on http://de.mathworks.com/matlabcentral/fileexchange/35455-convert-keplerian-orbital-elements-to-a-state-vector/content/orb2rv.m
+
+    #     long_of_periapsis = argument_of_periapsis + long_of_asc_node # ϖ
+    #     true_longitude = true_anomaly + long_of_periapsis            # l
+    #     argument_of_latitude = true_anomaly + argument_of_periapsis  # u
+
+    #     circular = cls.eq(eccentricity, 0)
+    #     flat = cls.eq(inclination % pi, 0)
+
+    #     if circular and flat:
+    #         argument_of_periapsis = 0
+    #         long_of_asc_node = 0
+    #         true_anomaly = true_longitude
+
+    #     if circular and not flat:
+    #         argument_of_periapsis = 0
+    #         true_anomaly = argument_of_latitude
+
+    #     if flat and not circular:
+    #         long_of_asc_node = 0
+    #         argument_of_periapsis = long_of_periapsis
+
+    #     pos_perifocal = array([
+    #         semi_latus_rectum * cos(true_anomaly) / (1 + eccentricity * cos(true_anomaly)),
+    #         semi_latus_rectum * sin(true_anomaly) / (1 + eccentricity * cos(true_anomaly)),
+    #         0,
+    #     ])
+
+    #     vel_perifocal = array([
+    #        -sqrt(gravitational_parameter/semi_latus_rectum) * sin(true_anomaly),
+    #         sqrt(gravitational_parameter/semi_latus_rectum) * (eccentricity + cos(true_anomaly)),
+    #         0
+    #     ])
+
+    #     # Rotate that shit
+    #     v_position = cls.rotate(pos_perifocal, long_of_asc_node, inclination, argument_of_periapsis)
+    #     v_velocity = cls.rotate(vel_perifocal, long_of_asc_node, inclination, argument_of_periapsis)
+
+    #     return v_position, v_velocity
+
+    def _stumpff(self, psi):
         """
-        Peform a rotation on *vector* using the angles *Ω*, *i*, and *ω*.
+        Find the roots for the Stumpff equations (c2, c3) for a given value of 
+        ψ.
+
+        This is just for performing the integration in the "step" method.
         """
-        vector = vector[:, newaxis]
-        res = (Rz(-O) * Rx(-i) * Rz(-w)).dot(vector)
-        return squeeze(asarray(res))
-
-
-    @classmethod
-    def reverse(cls,
-            semi_latus_rectum,       # p
-            eccentricity,            # e
-            inclination,             # i
-            long_of_asc_node,        # Ω
-            argument_of_periapsis,   # ω
-            true_anomaly,            # ν
-            gravitational_parameter, # μ
-        ):
-
-        # based on http://de.mathworks.com/matlabcentral/fileexchange/35455-convert-keplerian-orbital-elements-to-a-state-vector/content/orb2rv.m
-
-        long_of_periapsis = argument_of_periapsis + long_of_asc_node # ϖ
-        true_longitude = true_anomaly + long_of_periapsis            # l
-        argument_of_latitude = true_anomaly + argument_of_periapsis  # u
-
-        circular = cls.eq(eccentricity, 0)
-        flat = cls.eq(inclination % pi, 0)
-
-        if circular and flat:
-            argument_of_periapsis = 0
-            long_of_asc_node = 0
-            true_anomaly = true_longitude
-
-        if circular and not flat:
-            argument_of_periapsis = 0
-            true_anomaly = argument_of_latitude
-
-        if flat and not circular:
-            long_of_asc_node = 0
-            argument_of_periapsis = long_of_periapsis
-
-        pos_perifocal = array([
-            semi_latus_rectum * cos(true_anomaly) / (1 + eccentricity * cos(true_anomaly)),
-            semi_latus_rectum * sin(true_anomaly) / (1 + eccentricity * cos(true_anomaly)),
-            0,
-        ])
-
-        vel_perifocal = array([
-           -sqrt(gravitational_parameter/semi_latus_rectum) * sin(true_anomaly),
-            sqrt(gravitational_parameter/semi_latus_rectum) * (eccentricity + cos(true_anomaly)),
-            0
-        ])
-
-        # Rotate that shit
-        v_position = cls.rotate(pos_perifocal, long_of_asc_node, inclination, argument_of_periapsis)
-        v_velocity = cls.rotate(vel_perifocal, long_of_asc_node, inclination, argument_of_periapsis)
-
-        return v_position, v_velocity
+        sq_psi = sqrt(abs(psi))
+        if self.gt(psi, 0):
+            c2 = (1.0 - cos(sq_psi)) / psi
+            c3 = (sq_psi - sin(sq_psi)) / sq_psi**3
+        elif self.lt(psi, 0):
+            c2 = (1.0 - cosh(sq_psi)) / psi
+            c3 = (sinh(sq_psi) - sq_psi) / sq_psi**3
+        else:
+            # Constants as given in the original source code.
+            c2 = 0.5
+            c3 = 1.0/6.0
+        return c2, c3
 
     #
     # Things the game needs
     #
 
-    def step(self, seconds, update = True):
+    def step(self, delta_seconds, update = True):
         """
         Update the position of the craft based on the number of seconds that
         have passed.
         """
-        if self.is_parabolic:
-            # https://en.wikipedia.org/wiki/Parabolic_trajectory#Barker.27s_equation
-            A = (3/2) * sqrt(
-                self.gravitational_parameter / (2.0 * self.periapsis_distance**3.0)
-            ) * seconds
-            B = cbrt(
-                A + sqrt(
-                    A**2.0 + 1.0
-                )
-            )
-            true_anomaly = 2.0 * arctan(B - 1.0/B)
+        if abs(delta_seconds) < self.ACCURACY:
+            return self.v_position, self.v_velocity
+        #
+        # Determine a new position and velocity, given a delta-t in seconds,
+        # using the universal variable formulation.
+        #
+        # This routine is based on the "kepler" function from the as2body.cpp
+        # implementation available here: https://celestrak.com/software/vallado-sw.asp
+        # and some reference to the 2nd edition of the book (§2.2 up to p. 101).
+        #
+        multiple_revolutions = 0
 
-        elif self.is_hyperbolic:
-            # Fundamentals of Orbital Mechanics for Engineering Students.
-            # 3.34 (p.174)
-            mean_anomaly = (
-                self.gravitational_parameter**2.0/self.angular_momentum
-            ) * (
-                self.eccentricity**2.0 - 1.0
-            )**(3.0/2.0) * seconds
-            mean_anomaly %= self._2PI
-            # 3.45 (p. 178)
-            eccentric_anomaly = keplerh(mean_anomaly, self.eccentricity, self.ACCURACY)
-            # 3.41b (p 177)
-            true_anomaly = arccos(
-                (cosh(eccentric_anomaly) - self.eccentricity)
-                /
-                (1.0 - self.eccentricity * cosh(eccentric_anomaly))
+        _dot_rv = dot(self.v_position, self.v_velocity) # convenience variable
+
+        if self.is_elliptical: # fixme, these should use cached methods/values
+            
+            if abs(delta_seconds) > abs(self.period):
+                multiple_revolutions = floor(delta_seconds/self.period)
+
+            chi = sqrt(self.gravitational_parameter) * delta_seconds * self._alpha
+
+            if self.eq(abs(self._alpha - 1), 0):
+                # Fuzz the guess. This number taken from the source code. But if
+                # the initial value is too close, then (so I am told), it will
+                # not converge in the integration step.
+                chi *= 0.97
+
+
+        elif self.is_parabolic:
+
+            _s = (
+                self._HPI - arctan(
+                    delta_seconds * 3.0 * sqrt(
+                        self.gravitational_parameter / self.semi_latus_rectum**3
+                    )
+                )
+            ) / 2
+            _w = arctan(tan(_s)**(1.0/3.0))
+
+            chi = sqrt(self.semi_latus_rectum) * (2.0 * cot(2.0 * _w))
+            # mpmath and numpy don't always play nicely together
+            chi = float128(str(chi))
+
+        elif self.is_hyperbolic: # hyperbolic
+
+            _num = (-2.0 * self.gravitational_parameter * delta_seconds * self._alpha) / (
+                _dot_rv + sign(delta_seconds) * sqrt(-self.gravitational_parameter * self.semi_major_axis) *
+                (1 - self.mag_position * self._alpha)
             )
+
+            if update:
+                print(delta_seconds, self.semi_major_axis, self.eccentricity, _num)
+
+            chi = sign(delta_seconds) * sqrt(-self.semi_major_axis) * log(_num)
 
         else:
-            # https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
-            # M
-            mean_anomaly = self.mean_anomaly + seconds * sqrt(self.gravitational_parameter/self.semi_major_axis**3.0)
-            mean_anomaly %= self._2PI
-            # E
-            eccentric_anomaly = kepler(mean_anomaly, self.eccentricity, self.ACCURACY)
-            # theta
-            arg1 = sqrt(1.0 + self.eccentricity) * sin(eccentric_anomaly/2.0)
-            arg2 = sqrt(1.0 - self.eccentricity) * cos(eccentric_anomaly/2.0)
-            true_anomaly = 2.0 * arctan2(arg1, arg2)
+            raise Exception("Wrong spacetime")
 
+        while True:
 
-        v_position, v_velocity = self.reverse(
-            self.semi_latus_rectum,
-            self.eccentricity,
-            self.inclination,
-            self.long_of_asc_node,
-            self.argument_of_periapsis,
-            true_anomaly,
-            self.gravitational_parameter,
-        )
+            psi = chi**2 * self._alpha # greek alphabet soup
+
+            c2, c3 = self._stumpff(psi)
+
+            _r = chi**2 * c2 +  \
+                (_dot_rv/sqrt(self.gravitational_parameter)) * chi * (1 - psi*c3) + \
+                self.mag_position * (1 - psi*c2)
+
+            chi_ = chi + (delta_seconds * sqrt(self.gravitational_parameter) - (
+                chi**3 * c3 +
+                _dot_rv/sqrt(self.gravitational_parameter) * chi**2 * c2 +
+                self.mag_position * chi * (1.0 - psi*c3)
+            )) / _r
+
+            # TODO: adjustments for circular orbits or large (> 2pi * sqrt(a))
+            # values of chi_ may cause problems. See original source for fix.
+
+            # Reassign for next iteration
+            _chi, chi = chi, chi_
+            
+            if abs(chi_ - chi) < self.ACCURACY:
+                break
+
+        # At long last, we calculate the new position and velocity
+
+        f = 1.0 - (chi**2 * c2 / self.mag_position)
+        g = delta_seconds - chi**3 * c3/sqrt(self.gravitational_parameter)
+
+        v_position = array([
+            (f * self.v_position[i] + g * self.v_velocity[i]) for i in range(3)
+        ])
+
+        mag_position = norm(v_position)
+        g_dot = 1.0 - (chi**2 * c2/mag_position)
+        f_dot = (sqrt(self.gravitational_parameter) * chi / (self.mag_position * mag_position)) * (psi * c3 - 1.0)
+
+        v_velocity = array([
+            (f_dot * self.v_position[i] + g_dot * self.v_velocity[i]) for i in range(3)
+        ])
 
         if update:
             self.v_position, self.v_velocity = v_position, v_velocity
-            self._property_cache = {}
+            self.propery_cache = {}
 
         return v_position, v_velocity
 
     #
-    # Get orbit plot
+    # Get orbit plot. TODO: only plot this once, not on every draw frame.
     #
 
     def get_plot(self, n):
@@ -559,7 +649,7 @@ class Orbit(object):
         reference) for how to plot this orbit.
         """
         if not self.is_elliptical:
-            m = floor(n/2)
+            m = int(floor(n/2))
             if m*2 < n:
                 n = m
                 m += 1
@@ -584,20 +674,18 @@ class Orbit(object):
     # Miscellaneous helper properties for humans
     #
 
-    @cached_property
-    def is_circular(self):
-        return self.eq(self.eccentricity, 0)
+    # @cached_property
+    # def is_circular(self):
+    #     return self.eq(self.eccentricity, 0)
 
     @cached_property
     def is_parabolic(self):
-        return self.eq(self.eccentricity, self.ONE)
+        return abs(self._alpha) < self.ACCURACY
 
     @cached_property
     def is_hyperbolic(self):
-        # Check parabolic for the floating point check
-        return not self.is_parabolic and self.eccentricity > self.ONE
+        return self._alpha < 0 and not self.is_parabolic
 
     @cached_property
     def is_elliptical(self):
-        # Check parabolic for the floating point check
-        return not self.is_parabolic and self.eccentricity < self.ONE
+        return self._alpha > 0 and not self.is_parabolic

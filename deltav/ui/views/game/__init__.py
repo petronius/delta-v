@@ -27,15 +27,7 @@ class GameView(deltav.ui.views.BaseView):
         planet = deltav.physics.body.Body(5.972e24, 6371000) 
 
         self.player = PlayerShip('SASE C-3402 <font face="Droid Sans Fallback">黄河</font> Yellow River')
-        self.player.orbit(planet, (
-            -6524.834 * 1000, #9.01e3 * 1000,
-            0, # 0,
-            0, #-2e03 * 1000,
-        ), (
-            0, #4.628784989010491E+00 * 1000,
-            30 * 1000, #4.718224103100249E+00 * 1000,
-            0, #4.457710395445335E+00 * 1000,
-        ))
+        self.player.orbit(planet, (6524.834 * 1000,0,0), (0,7.81599286557539 * 1000,0))
 
         shuttle, station = (
             MobShip("OV-103 Discovery"),
@@ -55,9 +47,17 @@ class GameView(deltav.ui.views.BaseView):
         )
 
         station.orbit(planet, v_position, v_velocity)
-        shuttle.orbit(planet, tuple(map(lambda x : x*1.3, v_position)), tuple(map(lambda x : x, v_velocity)))
+        shuttle.orbit(planet, (
+            0,
+            6524.834 * 1000,
+            0
+        ), (
+            -30 * 1000,
+            0,
+            0,
+        ))
 
-        ships = (self.player,)
+        ships = (shuttle, ) #(self.player,) # shuttle, station)
 
         self.scene = {
             "ships": ships,
@@ -133,8 +133,14 @@ class GameView(deltav.ui.views.BaseView):
         self.view3d.scroll(scroll_y)
 
     def tick(self):
-        # for ship in self.scene.get("ships", ()):
-        #     ship._orbit.step(2**self.speed)
+
+        try:
+            for ship in self.scene.get("ships", ()):
+                ship._orbit.step(2**self.speed)
+            import time
+            time.sleep(2)
+        except FloatingPointError:
+            pass
         # for panel in self.panels:
         #     panel.update()
         self.view3d.center_on(self.player.position)
