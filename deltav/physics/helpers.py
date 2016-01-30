@@ -21,11 +21,9 @@ def kepler(m_anom, eccentricity, accuracy = 1e-12):
             break
     return e_anom
 
-
+# Fundamentals/Curtis
 def keplerh(M, e, accuracy = 1e-12):
     F = M
-    if F == 0:
-        return 0
     while True:
         f = e * sinh(F) - F - M
         fp = e * cosh(F) - 1
@@ -42,9 +40,9 @@ def Rx(theta):
     Return a rotation matrix for the X axis and angle *theta*
     """
     return matrix([
-        [1, 0,           0           ],
-        [0, cos(theta), sin(theta)   ],
-        [0, -sin(theta), cos(theta)  ],
+        [1, 0,           0         ],
+        [0, cos(theta),  sin(theta)],
+        [0, -sin(theta), cos(theta)],
     ], dtype="float64")
 
 def Ry(theta):
@@ -52,9 +50,9 @@ def Ry(theta):
     Return a rotation matrix for the Y axis and angle *theta*
     """
     return matrix([
-        [cos(theta),    0, sin(theta)],
-        [0,             1, 0         ],
-        [-sin(theta),   0, cos(theta)],
+        [cos(theta),  0, sin(theta)],
+        [0,           1, 0         ],
+        [-sin(theta), 0, cos(theta)],
     ], dtype="float64")
     
 def Rz(theta):
@@ -62,8 +60,8 @@ def Rz(theta):
     Return a rotation matrix for the Z axis and angle *theta*
     """
     return matrix([
-        [cos(theta), sin(theta),   0],
-        [-sin(theta), cos(theta),  0],
-        [0,          0,            1],
+        [cos(theta), sin(theta),  0],
+        [-sin(theta), cos(theta), 0],
+        [0,          0,           1],
     ], dtype="float64")
     

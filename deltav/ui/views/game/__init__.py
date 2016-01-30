@@ -13,8 +13,8 @@ from deltav.ships import MobShip, PlayerShip
 from deltav.ui.keyboard import bindings as k
 
 from .view3d import View3D
-from .panels import status as StatusPanel
-from .panels import nav as NavPanel
+# from .panels import status as StatusPanel
+# from .panels import nav as NavPanel
 
 class GameView(deltav.ui.views.BaseView):
 
@@ -28,13 +28,13 @@ class GameView(deltav.ui.views.BaseView):
 
         self.player = PlayerShip('SASE C-3402 <font face="Droid Sans Fallback">黄河</font> Yellow River')
         self.player.orbit(planet, (
-            9.01e3 * 1000,
-            0,
-            -2e03 * 1000,
+            -6524.834 * 1000, #9.01e3 * 1000,
+            0, # 0,
+            0, #-2e03 * 1000,
         ), (
-            4.628784989010491E+00 * 1000,
-            4.718224103100249E+00 * 1000,
-            4.457710395445335E+00 * 1000,
+            0, #4.628784989010491E+00 * 1000,
+            30 * 1000, #4.718224103100249E+00 * 1000,
+            0, #4.457710395445335E+00 * 1000,
         ))
 
         shuttle, station = (
@@ -57,7 +57,7 @@ class GameView(deltav.ui.views.BaseView):
         station.orbit(planet, v_position, v_velocity)
         shuttle.orbit(planet, tuple(map(lambda x : x*1.3, v_position)), tuple(map(lambda x : x, v_velocity)))
 
-        ships = (shuttle, station, self.player)
+        ships = (self.player,)
 
         self.scene = {
             "ships": ships,
@@ -73,13 +73,13 @@ class GameView(deltav.ui.views.BaseView):
             )
         )
 
-        self.panels = (
-            StatusPanel,
-            NavPanel,
-        )
+        # self.panels = (
+        #     StatusPanel,
+        #     NavPanel,
+        # )
 
-        for panel in self.panels:
-            panel.load(deltav.ui.game_window, self.ui_batch, self.player)
+        # for panel in self.panels:
+        #     panel.load(deltav.ui.game_window, self.ui_batch, self.player)
 
 
     def load(self):
@@ -133,8 +133,8 @@ class GameView(deltav.ui.views.BaseView):
         self.view3d.scroll(scroll_y)
 
     def tick(self):
-        for ship in self.scene.get("ships", ()):
-            ship._orbit.step(2**self.speed)
-        for panel in self.panels:
-            panel.update()
+        # for ship in self.scene.get("ships", ()):
+        #     ship._orbit.step(2**self.speed)
+        # for panel in self.panels:
+        #     panel.update()
         self.view3d.center_on(self.player.position)

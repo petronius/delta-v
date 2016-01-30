@@ -36,6 +36,11 @@ class BaseShip(object):
 
         self._orbit = None
 
+    @property
+    def mass(self):
+        return self.base_mass + sum([m.mass for m in self.modules.values()])
+    
+
     # @property
     # def mass(self):
     #     # FIXME: Cache this propery until modules change
