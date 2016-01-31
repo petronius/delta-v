@@ -134,13 +134,8 @@ class GameView(deltav.ui.views.BaseView):
 
     def tick(self):
 
-        try:
-            for ship in self.scene.get("ships", ()):
-                ship._orbit.step(2**self.speed)
-            import time
-            time.sleep(2)
-        except FloatingPointError:
-            pass
+        for ship in self.scene.get("ships", ()):
+            ship._orbit.step(2**self.speed)
         # for panel in self.panels:
         #     panel.update()
         self.view3d.center_on(self.player.position)
