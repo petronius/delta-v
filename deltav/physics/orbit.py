@@ -6,10 +6,9 @@ Two-body Keplarian orbit modelling.
 # TODO: clear plot and is_* properties only during acceleration, not on every
 #       position update
 # TODO: move to just mpmath?
-
+from functools import partial
 from math import floor
 from numpy import (
-    array,
     float128,
     seterr,
     pi, Inf,
@@ -23,8 +22,11 @@ from numpy import (
     log,
 )
 from numpy.linalg import norm
+from numpy import array as _array
 # not provided by numpy, for reasons which are opaque to me
 from mpmath import cot
+
+array = partial(_array, dtype=float128)
 
 seterr(all="raise")
 
@@ -275,7 +277,13 @@ class Orbit(object):
         else:
             raise Exception("Wrong spacetime")
 
-        while True:
+        iterations = 0
+        print("-"*80, self._alpha)
+        while iterations < 100:
+
+            print(chi)
+
+            iterations += 1
 
             psi = chi**2 * self._alpha # greek alphabet soup
 
@@ -300,8 +308,16 @@ class Orbit(object):
             _chi = chi
             chi = chi_
             
+            print(">> ", abs(chi - _chi), chi > 2*pi*sqrt(self.semi_major_axis))
+
             if abs(chi - _chi) < self.ACCURACY:
                 break
+
+        if iterations > 99:
+            s = delta_seconds/10.0
+            for _ in range(10):
+                p, v = self.step(s, update = update)
+            return p, v
 
         # At long last, we calculate the new position and velocity
 
@@ -344,7 +360,7 @@ class Orbit(object):
                 m += 1
             else:
                 n = m
-            step_size = 500
+            step_size = 30
             backward = [0 - step_size * i for i in range(1, m + 1)]
             forwards = [step_size * i for i in range(n)]
             steps = backward[::-1] + forwards

@@ -44,7 +44,7 @@ class View3D:
 
         self.x = 0.0
         self.y = 0.0
-        self.z = 512
+        self.z = 312
 
         self.mode = self.NOFLAT
         
@@ -71,6 +71,8 @@ class View3D:
         self.center_on(game_view.player.position)
 
     def center_on(self, coords):
+        self.center = numpy.array([0,0,0])
+        return
         x, y, z = map(lambda x: x*self.SCALE, coords)
         self.center = numpy.array([x, y, z])
 
@@ -90,8 +92,13 @@ class View3D:
         self.apply()
 
         for ship in scene.get("ships", ()): # passing in the night
+
             orbit = [self._world_to_scene(p) for p in ship._orbit.get_plot(self.ORBIT_PLOT_COUNT)]
-            self.draw_loop(orbit, self.ORBIT_COLOR)
+
+            if ship._orbit.is_elliptical:
+                self.draw_loop(orbit, self.ORBIT_COLOR)
+            else:
+                self.draw_line(orbit, self.ORBIT_COLOR)
 
             coords = self._world_to_scene(ship.position)
 
@@ -245,6 +252,17 @@ class View3D:
 
         glColor3f(*color)
         glBegin(GL_LINE_LOOP)
+        for vtx in verticies:
+            glVertex3f(*vtx)
+        glEnd()
+
+
+    def draw_line(self, verticies, color):
+        if not self._show["ORBITS"]:
+            return
+        self._perspective()
+        glColor3f(*color)
+        glBegin(GL_LINE_STRIP)
         for vtx in verticies:
             glVertex3f(*vtx)
         glEnd()

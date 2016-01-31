@@ -57,7 +57,7 @@ class GameView(deltav.ui.views.BaseView):
             0,
         ))
 
-        ships = (shuttle, ) #(self.player,) # shuttle, station)
+        ships = (self.player, station) # shuttle, station)
 
         self.scene = {
             "ships": ships,
@@ -66,10 +66,10 @@ class GameView(deltav.ui.views.BaseView):
 
         self.view3d = View3D(self,
             (
-             5,
-             deltav.ui.game_window.height//2 + 5,
-             deltav.ui.game_window.width//2 - 10,
-             deltav.ui.game_window.height//2 -10,
+             0, #5,
+             0, #deltav.ui.game_window.height//2 + 5,
+             deltav.ui.game_window.width, #//2 - 10,
+             deltav.ui.game_window.height, #//2 -10,
             )
         )
 
@@ -133,7 +133,6 @@ class GameView(deltav.ui.views.BaseView):
         self.view3d.scroll(scroll_y)
 
     def tick(self):
-
         for ship in self.scene.get("ships", ()):
             ship._orbit.step(2**self.speed)
         # for panel in self.panels:
