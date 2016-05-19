@@ -13,8 +13,8 @@ from deltav.ships import MobShip, PlayerShip
 from deltav.ui.keyboard import bindings as k
 
 from .view3d import View3D
-# from .panels import status as StatusPanel
-# from .panels import nav as NavPanel
+from .panels import status as StatusPanel
+from .panels import nav as NavPanel
 
 class GameView(deltav.ui.views.BaseView):
 
@@ -73,13 +73,13 @@ class GameView(deltav.ui.views.BaseView):
             )
         )
 
-        # self.panels = (
-        #     StatusPanel,
-        #     NavPanel,
-        # )
+        self.panels = (
+            StatusPanel,
+            NavPanel,
+        )
 
-        # for panel in self.panels:
-        #     panel.load(deltav.ui.game_window, self.ui_batch, self.player)
+        for panel in self.panels:
+            panel.load(deltav.ui.game_window, self.ui_batch, self.player)
 
 
     def load(self):
@@ -128,13 +128,19 @@ class GameView(deltav.ui.views.BaseView):
         elif key == k["SPEED_9"]:
             self.speed = 9
 
+
+        elif key == k["ACC_PLUS"]:
+            self.player._orbit.accelerate(100)
+        elif key == k["ACC_MINUS"]:
+            self.player._orbit.accelerate(-100)
+
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # FIXME: only pass if is on viewport
         self.view3d.scroll(scroll_y)
 
     def tick(self):
         for ship in self.scene.get("ships", ()):
-            ship._orbit.step(2**self.speed)
-        # for panel in self.panels:
-        #     panel.update()
+            ship._orbit.step(.25*self.speed)
+        for panel in self.panels:
+            panel.update()
         self.view3d.center_on(self.player.position)

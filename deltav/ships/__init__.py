@@ -95,7 +95,8 @@ class BaseShip(object):
         """
         Return the position of the ship, relative to the body it is orbiting.
         """
-        return tuple(self._orbit.v_position)
+        position, velocity = self._orbit.get_position()
+        return tuple(position)
 
 
     def accelerate(self, vector):

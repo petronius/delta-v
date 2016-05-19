@@ -24,6 +24,9 @@ bindings = {
     "SHOW_ORBITS": key.F3,
     "SHOW_BODIES": key.F2,
     "SHOW_LABELS": key.F1,
+
+    "ACC_PLUS": key.NUM_ADD,
+    "ACC_MINUS": key.NUM_SUBTRACT,
     
 }
 

@@ -23,8 +23,6 @@ from OpenGL.GLU import *
 
 class View3D:
 
-    ORBIT_PLOT_COUNT = 60
-
     # Scale factor for the game view, in meters
     SCALE = 1e-5
 
@@ -93,7 +91,7 @@ class View3D:
 
         for ship in scene.get("ships", ()): # passing in the night
 
-            orbit = [self._world_to_scene(p) for p in ship._orbit.get_plot(self.ORBIT_PLOT_COUNT)]
+            orbit = [self._world_to_scene(p) for p in ship._orbit.plot]
 
             if ship._orbit.is_elliptical:
                 self.draw_loop(orbit, self.ORBIT_COLOR)
@@ -160,7 +158,7 @@ class View3D:
         result = self.center - tuple(map(lambda x: x*self.SCALE, coords))
         return tuple(result)
 
-    def _scene_to_screen(self, coords):
+    def _scene_to_screen(self, coords, snap_to_edge=False):
         """
         Rotate world coordinates x, y to screen coordinates
         """
@@ -176,22 +174,62 @@ class View3D:
         x -= self.bx
         y -= self.by
 
+        if snap_to_edge == True:
+            x, y, z = self._snap_to_edge(x, y, z)
+
+        return int(x), int(y), int(z)
+
+    def _snap_to_edge(self, x, y, z):
+        """
+        For things we want to indicate the direction of, even when we can't
+        see them.
+        """
+        # _xmax = self.bx + self.w - 10
+        # _ymax = self.by + self.h - 10
+        # _xmin = self.bx + 10
+        # _ymin = self.by + 10
+
+        # if z >= 1:
+        #     # keep it in front of the camera
+        #     z = .9
+        #     # move the point offscreen beyond the edge of the current quadrant
+        #     # it is in. the next step will snap it back to the edge
+        #     if y < self.by + self.h/2:
+        #         y = self.by - y
+        #     elif self.by + self.h/2 < y:
+        #         y += _ymax
+        #     if x < self.bx + self.w/2:
+        #         x = self.bx - x
+        #     elif self.bx + self.w/2 < x:
+        #         x += _xmax
+        # if x < _xmin:
+        #     x = _xmin
+        # elif x > _xmax:
+        #     x = _xmax
+        # if y < _ymin:
+        #     y = _ymin
+        # elif y > _ymax:
+        #     y = _ymax
         return x, y, z
 
     def drag(self, dx, dy, button):
-        """ Mouse drag event handler.
+        """
+        Mouse drag event handler.
         """
         if button == 1:
             self.x -= dx*2
             self.y -= dy*2
         elif button == 2:
-            self.z += dy*100
+            self.z += dy*10
         elif button == 4:
             self.ry += dx/4.
             self.rx -= dy/4.
 
     def scroll(self, delta):
-        self.z += delta*100
+        """
+        Scroll wheel
+        """
+        self.z += delta*10
 
     #
     # Drawing functions.
@@ -200,12 +238,16 @@ class View3D:
     def text(self, s, coords):
         """
         Add text in the scene
+
+        FIXME: position labels optimally for location on screen (ie, don't draw
+                offscreen).
+        BONUS: don't let labels be drawn on each other
         """
 
         if not self._show["LABELS"]:
             return
 
-        x, y, z = self._scene_to_screen(coords)
+        x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
 
         if z < 1:
 
@@ -229,7 +271,7 @@ class View3D:
         if not self._show["SYMBOLS"]:
             return
 
-        x, y, z = self._scene_to_screen(coords)
+        x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
 
         a = (x, y+offset, z)
         b = (x+offset, y, z)

@@ -2,14 +2,11 @@
 Two-body Keplarian orbit modelling.
 """
 
-#TODO: https://en.wikipedia.org/wiki/Hill_sphere
-# TODO: clear plot and is_* properties only during acceleration, not on every
-#       position update
-# TODO: move to just mpmath?
 from functools import partial
 from math import floor
 from numpy import (
-    float128,
+    cross,
+    longdouble,
     seterr,
     pi, Inf,
     sqrt,
@@ -26,7 +23,10 @@ from numpy import array as _array
 # not provided by numpy, for reasons which are opaque to me
 from mpmath import cot
 
-array = partial(_array, dtype=float128)
+# set the float type
+_float = longdouble
+
+array = partial(_array, dtype=_float)
 
 seterr(all="raise")
 
@@ -49,9 +49,6 @@ def cached_property(f):
     return property(get)
 
 
-class OrbitCalculationException(Exception):
-    pass
-
 class Orbit(object):
     """
     Set up an orbit from spacecraft position and speed data. The game here is
@@ -66,42 +63,77 @@ class Orbit(object):
     """
 
     # The gravitational constant
-    G = 6.674e-11
+    G = _float("6.67408e-11")
 
     # Used for comparisons, because of floating point rounding error
-    ACCURACY = float128("1e-12")
+    ACCURACY = _float("1e-12")
 
 
     def __init__(self, parent, satellite, v_position, v_velocity):
+        """
+        Initial position and velocity are used as a zero epoch, and all
+        subsequent calculations are based on these. The values are re-set during
+        acceleration, creating a new zero epoch. This avoids accumulated
+        integration error over many interations.
+        """
         self.parent = parent
         self.satellite = satellite
         self.v_position = array(v_position)
         self.v_velocity = array(v_velocity)
 
-        self.mag_position = norm(self.v_position)
-        self.mag_velocity = norm(self.v_velocity)
-
         self.propery_cache = {}
 
+        self.t_delta = _float("0")
 
-    def accelerate(self, vector):
-        self.v_velocity = array([
-            self.v_velocity[0] + vector[0],
-            self.v_velocity[1] + vector[1],
-            self.v_velocity[2] + vector[2],
-        ])
-        del self.propery_cache["_plot"]
 
-    #
+    def accelerate(self, x):
+        """
+        x = amount. positive in current direction of travel, negative in reverse
+
+        TODO: acceleration off the plane of orbit
+
+        This routine needs to:
+        a) update velocity along a vector
+        b) reset cached orbital params
+        c) clear _plot cache
+        d) reset the self.v_position and the self.t_delta to create a new
+           zero epoch.
+        """
+        current_v_position, current_v_velocity = self.get_position()
+        v_unit = current_v_velocity / norm(current_v_velocity)
+        v_accel = v_unit * x
+        # set velocity
+        self.v_velocity = current_v_velocity + v_accel
+        # set new position
+        self.v_position = current_v_position
+        # reset epoch
+        self.t_delta = 0
+        # clear cache
+        self._property_cache = {}
+
+
+    # Often used
+
+
+    @cached_property
+    def mag_position(self):
+        return norm(self.v_position)
+
+    @cached_property
+    def mag_velocity(self):
+        return norm(self.v_velocity)
+
+    
     # Define properties for the classical orbital elements
-    #
+    
 
     @cached_property
     def gravitational_parameter(self):
         """
-        Gravitational parameter (2-body)
+        Standard gravitational parameter of the parent body.
         """
         return self.G * self.parent.mass
+
 
     @cached_property
     def specific_mechanical_energy(self):
@@ -158,10 +190,11 @@ class Orbit(object):
         """
         Used solely for calculation purposes.
         """
-        alpha = -self.specific_mechanical_energy * 2.0/self.gravitational_parameter
+        alpha = -self.specific_mechanical_energy * _float("2")/self.gravitational_parameter
         if abs(alpha) < self.ACCURACY:
             return 0
         return alpha
+
 
     @cached_property
     def semi_major_axis(self):
@@ -169,7 +202,7 @@ class Orbit(object):
         Calculate the semi-major axis (a).
         """
         if not self.is_parabolic:
-            return 1/self._alpha
+            return _float("1")/self._alpha
         else:
             return Inf
 
@@ -180,8 +213,8 @@ class Orbit(object):
         The orbital period in seconds. (P)
         """
         if self.is_elliptical:
-            return 2.0 * pi * sqrt(
-                abs(self.semi_major_axis)**3.0 / self.gravitational_parameter
+            return 2 * pi * sqrt(
+                abs(self.semi_major_axis)**3 / self.gravitational_parameter
             )
         else:
             return None
@@ -194,6 +227,7 @@ class Orbit(object):
         """
         return self.semi_major_axis * (1 - self.eccentricity**2)
    
+
     def _stumpff(self, psi):
         """
         Find the roots for the Stumpff equations (c2, c3) for a given value of 
@@ -203,43 +237,64 @@ class Orbit(object):
         """
         if psi > self.ACCURACY:
             sq_psi = sqrt(psi)
-            c2 = (1.0 - cos(sq_psi)) / psi
+            c2 = (1 - cos(sq_psi)) / psi
             c3 = (sq_psi - sin(sq_psi)) / sq_psi**3
         elif psi < 0 and abs(psi) > self.ACCURACY: # -ψ
             sq_psi = sqrt(-psi)
-            c2 = (1.0 - cosh(sq_psi)) / psi
+            c2 = (1 - cosh(sq_psi)) / psi
             c3 = (sinh(sq_psi) - sq_psi) / sqrt(-psi**3)
         else:
             # Constants as given in the original source code.
-            c2 = 0.5
-            c3 = 1.0/6.0
+            c2 = _float("0.5") # avoid float casting
+            c3 = _float("1.0")/_float("6.0") # avoid float casting
         return c2, c3
 
     #
     # Things the game needs
     #
 
-    def step(self, delta_seconds, update = True):
+    def step(self, delta_seconds):
         """
         Update the position of the craft based on the number of seconds that
         have passed.
+
+        This just sets the epoch, and you should get the new position using
+        self.get_position()
         """
-        if abs(delta_seconds) < self.ACCURACY:
-            return self.v_position, self.v_velocity
+        delta_seconds = _float(delta_seconds) # should be passed in as an integer
+        self.t_delta += delta_seconds
+
+    def get_position(self, delta_seconds = None):
+        """
+        Get the current position. If delta_seconds is passed, it will be used
+        as the epoch for the calculation.
+
+        Extremely large time deltas have the potential to slow down the
+        Newton-Raphson integration (see the while loop). But at least in the
+        case of spacecraft, we don't ever expect the time deltas to grow very
+        large (because the zero epoch for them will be reset on each
+        acceleration).
+        """
+
+        if delta_seconds is None:
+            delta_seconds = self.t_delta
+
+        # Only matters for elliptical orbits.
+        if self.period is not None:
+            delta_seconds = delta_seconds % self.period
+
         #
         # Determine a new position and velocity, given a delta-t in seconds,
         # using the universal variable formulation.
         #
         # This routine is based on the "kepler" function from the as2body.cpp
         # implementation available here: https://celestrak.com/software/vallado-sw.asp
-        # and some reference to the 2nd edition of the book (§2.2 up to p. 101).
+        # and the 2nd edition of the book (§2.2 up to p. 101).
         #
 
         _dot_rv = dot(self.v_position, self.v_velocity) # convenience variable
 
-        if self.is_elliptical: # fixme, these should use cached methods/values
-            
-            # FIXME: should floor out delta_seconds vs period
+        if self.is_elliptical:
 
             chi = sqrt(self.gravitational_parameter) * delta_seconds * self._alpha
 
@@ -247,30 +302,32 @@ class Orbit(object):
                 # Fuzz the guess. This number taken from the source code. But if
                 # the initial value is too close, then (so I am told), it will
                 # not converge in the integration step.
-                chi *= 0.97
-
+                chi *= _float("0.97")
 
         elif self.is_parabolic:
 
             _s = (
                 (pi/2) - arctan(
-                    delta_seconds * 3.0 * sqrt(
+                    delta_seconds * 3 * sqrt(
                         self.gravitational_parameter / self.semi_latus_rectum**3
                     )
                 )
             ) / 2
-            _w = arctan(tan(_s)**(1.0/3.0))
+            _w = arctan(tan(_s)**(_float("1")/_float("3")))
 
-            chi = sqrt(self.semi_latus_rectum) * (2.0 * cot(2.0 * _w))
+            chi = sqrt(self.semi_latus_rectum) * (2 * cot(2 * _w))
             # mpmath and numpy don't always play nicely together
-            chi = float128(str(chi))
+            chi = _float(str(chi))
 
         elif self.is_hyperbolic: # hyperbolic
 
-            _num = (-2.0 * self.gravitational_parameter * delta_seconds * self._alpha) / (
+            _num = (-2 * self.gravitational_parameter * delta_seconds * self._alpha) / (
                 _dot_rv + sign(delta_seconds) * sqrt(-self.gravitational_parameter * self.semi_major_axis) *
                 (1 - self.mag_position * self._alpha)
             )
+
+            if _num < self.ACCURACY:
+                _num = self.ACCURACY
 
             chi = sign(delta_seconds) * sqrt(-self.semi_major_axis) * log(_num)
 
@@ -278,10 +335,8 @@ class Orbit(object):
             raise Exception("Wrong spacetime")
 
         iterations = 0
-        print("-"*80, self._alpha)
-        while iterations < 100:
-
-            print(chi)
+        _chi = chi + _float("1") # placeholder value to make the first check pass
+        while abs(chi - _chi) > self.ACCURACY:
 
             iterations += 1
 
@@ -296,9 +351,9 @@ class Orbit(object):
             chi_ = chi + \
                 (
                     sqrt(self.gravitational_parameter) * delta_seconds -
-                    chi **3 * c3 -
+                    chi**3 * c3 -
                     _dot_rv/sqrt(self.gravitational_parameter) * chi**2 * c2 -
-                    self.mag_position * chi * (1.0 - psi*c3)
+                    self.mag_position * chi * (1 - psi*c3)
                 ) / _r
 
             # TODO: adjustments for circular orbits or large (> 2pi * sqrt(a))
@@ -307,21 +362,10 @@ class Orbit(object):
             # Reassign for next iteration
             _chi = chi
             chi = chi_
-            
-            print(">> ", abs(chi - _chi), chi > 2*pi*sqrt(self.semi_major_axis))
-
-            if abs(chi - _chi) < self.ACCURACY:
-                break
-
-        if iterations > 99:
-            s = delta_seconds/10.0
-            for _ in range(10):
-                p, v = self.step(s, update = update)
-            return p, v
 
         # At long last, we calculate the new position and velocity
 
-        f = 1.0 - (chi**2 * c2 / self.mag_position)
+        f = 1 - (chi**2 * c2 / self.mag_position)
         g = delta_seconds - chi**3 * c3/sqrt(self.gravitational_parameter)
 
         v_position = array([
@@ -329,18 +373,12 @@ class Orbit(object):
         ])
 
         mag_position = norm(v_position)
-        g_dot = 1.0 - (chi**2 * c2/mag_position)
-        f_dot = (sqrt(self.gravitational_parameter) * chi / (self.mag_position * mag_position)) * (psi * c3 - 1.0)
+        g_dot = 1 - (chi**2 * c2/mag_position)
+        f_dot = (sqrt(self.gravitational_parameter) * chi / (self.mag_position * mag_position)) * (psi * c3 - 1)
 
         v_velocity = array([
             (f_dot * self.v_position[i] + g_dot * self.v_velocity[i]) for i in range(3)
         ])
-        
-        #assert f * g_dot - f_dot * g - 1 < self.ACCURACY
-
-        if update:
-            self.v_position, self.v_velocity = v_position, v_velocity
-            self.propery_cache = {}
 
         return v_position, v_velocity
 
@@ -348,31 +386,31 @@ class Orbit(object):
     # Get orbit plot. TODO: only plot this once, not on every draw frame.
     #
 
-    def get_plot(self, n):
+    @cached_property
+    def plot(self):
         """
-        Get *n* points (position vectors relative to the orbit's frame of
+        Get the points (position vectors relative to the orbit's frame of
         reference) for how to plot this orbit.
+
+        FIXME: Should really do this in OpenGL. use shader? https://www.opengl.org/discussion_boards/showthread.php/173136-drawing-hyperbola-in-openGL
         """
+        plot = []
         if not self.is_elliptical:
-            m = int(floor(n/2))
-            if m*2 < n:
-                n = m
-                m += 1
-            else:
-                n = m
-            step_size = 30
-            backward = [0 - step_size * i for i in range(1, m + 1)]
-            forwards = [step_size * i for i in range(n)]
+            backward = [0 - 30 * i for i in range(1, 300)]
+            forwards = [30 * i for i in range(0, 300)]
             steps = backward[::-1] + forwards
             for step in steps:
-                position, _ = self.step(step, update = False)
-                yield tuple(position)
+                position, _ = self.get_position(step)
+                plot.append(position)
         else:
-            period = self.period
-            step_size = period/n
-            for step in range(n):
-                position, _ = self.step(step_size * step, update = False)
-                yield tuple(position)
+            n = int(log(self.period)*20) # roughly tie it to size
+            step_size = 2*pi/n
+            for step in range(1, n):
+                angle = step_size * step
+                t = 1/((2*pi/self.period)/angle) # angle is used as mean anomaly, then we solve the equation for time. FIXME: doesn't work
+                position, _ = self.get_position(t)
+                plot.append(position)
+        return tuple(plot)
 
 
     #

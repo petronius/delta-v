@@ -8,8 +8,8 @@ reactors dramatically changed the mathematics of fuel-mass to energy
 output, and a second space age was born.
 
 The moon, the inner solar system, and finally the rocks and satellites of
-the outer solar system were colonized and industrialized. A universe
-shruk by jet-travel and networked computer systems expanded again,
+the outer solar system were colonized and industrialized. A universe that had
+been shruk by jet-travel and networked computer systems expanded again,
 dramatically.
 
 Out in the depths of space, some found their fortune. Others, a new home.
@@ -24,7 +24,7 @@ escape.
 
 Forced by nature to cut long, graceful curves over the surface of the
 cosmos, all space-ship captains know that one number is binding, one
-number answers the question "can I reach my destination?" That second
+number answers the question "can I reach my destination?" This second
 tyranny is known as "delta-v" (Δv).
 
 

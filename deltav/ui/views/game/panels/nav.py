@@ -37,27 +37,27 @@ theme = Theme({"font": "Silkscreen",
 
 
 elements = {
-  # "eccentricity": (Label(""), None),
-  # "semi_major_axis": (Label(""), "m"),
+  "eccentricity": (Label(""), None),
+  "semi_major_axis": (Label(""), "m"),
   # "inclination": (Label(""), "r"),
   # "long_of_asc_node": (Label(""), "r"),
   # "argument_of_periapsis": (Label(""), "r"),
   # "mean_anomaly": (Label(""), "r"),
   # "eccentric_anomaly": (Label(""), "r"),
-  # "semi_latus_rectum": (Label(""), "m"),
-  # "period": (Label(""), "s"),
+  "semi_latus_rectum": (Label(""), "m"),
+  "period": (Label(""), "s"),
   # "time_from_periapsis": (Label(""), "s"),
 }
 
 orbital_statuses = [
-  # [
-  #   Label("e"),
-  #   elements["eccentricity"][0],
-  # ],
-  # [
-  #   Label("a"),
-  #   elements["semi_major_axis"][0],
-  # ],
+  [
+    Label("e"),
+    elements["eccentricity"][0],
+  ],
+  [
+    Label("a"),
+    elements["semi_major_axis"][0],
+  ],
   # [
   #   Label("i"),
   #   elements["inclination"][0],
@@ -78,14 +78,14 @@ orbital_statuses = [
   #   Label("E/D/F"),
   #   elements["eccentric_anomaly"][0],
   # ],
-  # [
-  #   Label("p"),
-  #   elements["semi_latus_rectum"][0],
-  # ],
-  # [
-  #   Label("Period"),
-  #   elements["period"][0],
-  # ],
+  [
+    Label("p"),
+    elements["semi_latus_rectum"][0],
+  ],
+  [
+    Label("Period"),
+    elements["period"][0],
+  ],
   # [
   #   Label("Time from peraipsis"),
   #   elements["time_from_periapsis"][0],
@@ -123,7 +123,7 @@ def load(window, batch, player):
 
 
 def _format_pretty(n, u):
-  if numpy.isinf(n):
+  if n == numpy.Inf:
     return "∞", ""
   elif n is None:
     return "-", ""
