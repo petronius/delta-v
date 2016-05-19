@@ -35,7 +35,7 @@ theme = Theme({"font": "Droid Sans Mono",
 manager = None
 ship_modules = None
 
-def load(window, batch, player):
+def load(window, game_view):
 
   global manager, modules
   ship_modules = player.modules
@@ -87,7 +87,7 @@ def load(window, batch, player):
     anchor = ANCHOR_TOP_RIGHT,
     is_movable = False,
     window = window,
-    batch = batch,
+    batch = game_view.ui_batch,
     theme = theme,
     offset = (-10, 20)
 

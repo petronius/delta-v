@@ -1,4 +1,6 @@
 
+from collections import OrderedDict
+
 import numpy
 import pyglet
 
@@ -12,74 +14,55 @@ from deltav.physics.orbit import pi
 from deltav.ships import MobShip, PlayerShip
 from deltav.ui.keyboard import bindings as k
 
+from deltav.gamestate import GameState
+
 from .view3d import View3D
-from .panels import status as StatusPanel
+from .panels import tracking as TrackingPanel
 from .panels import nav as NavPanel
 
 class GameView(deltav.ui.views.BaseView):
 
+    player_options = {
+        "tracking": OrderedDict([
+            ("labels", True),
+            ("bodies", True),
+            ("orbits", True),
+            ("symbols", True),
+        ])
+    }
+
+    def toggle_option(self, type_, name):
+        self.player_options[type_][name] = not self.player_options[type_][name]
+
+    def get_option(self, type_, name):
+        return self.player_options[type_][name]
+
+
     def __init__(self):
+
+        self.game_state = GameState() # FIXME: on_load
 
         self.ui_batch = pyglet.graphics.Batch()
 
-        self.speed = 1
-
-        planet = deltav.physics.body.Body(5.972e24, 6371000) 
-
-        self.player = PlayerShip('SASE C-3402 <font face="Droid Sans Fallback">黄河</font> Yellow River')
-        self.player.orbit(planet, (6524.834 * 1000,0,0), (0,7.81599286557539 * 1000,0))
-
-        shuttle, station = (
-            MobShip("OV-103 Discovery"),
-            MobShip("ISS"),
-        )
-
-        v_position = (
-            -9.389136074764635E+02 * 1000,
-            -5.116319908091118E+03 * 1000,
-            4.342059664304661E+03 * 1000,
-        )
-
-        v_velocity = (
-            6.628784989010491E+00 * 1000,
-            1.718224103100249E+00 * 1000,
-            3.457710395445335E+00 * 1000,
-        )
-
-        station.orbit(planet, v_position, v_velocity)
-        shuttle.orbit(planet, (
-            0,
-            6524.834 * 1000,
-            0
-        ), (
-            -30 * 1000,
-            0,
-            0,
-        ))
-
-        ships = (self.player, station) # shuttle, station)
-
-        self.scene = {
-            "ships": ships,
-            "bodies": (planet,),
-        }
-
+        coords = self.game_state.player.position
         self.view3d = View3D(self,
             (
              0, #5,
              0, #deltav.ui.game_window.height//2 + 5,
              deltav.ui.game_window.width, #//2 - 10,
              deltav.ui.game_window.height, #//2 -10,
-            )
+            ),
+            coords
         )
 
+
         self.panels = (
-            StatusPanel,
+            TrackingPanel,
             NavPanel,
         )
 
         for panel in self.panels:
-            panel.load(deltav.ui.game_window, self.ui_batch, self.player)
+            panel.load(deltav.ui.game_window, self)
 
 
     def load(self):
@@ -89,7 +72,7 @@ class GameView(deltav.ui.views.BaseView):
         pass
 
     def on_draw(self):
-        self.view3d.render(self.scene)
+        self.view3d.render(self)
         self.ui_batch.draw()
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
@@ -101,46 +84,33 @@ class GameView(deltav.ui.views.BaseView):
 
     def on_key_press(self, key, modifiers):
         if key == k["SHOW_ORBITS"]:
-            self.view3d.show("ORBITS")
+            self.toggle_option("tracking", "orbits")
         elif key == k["SHOW_LABELS"]:
-            self.view3d.show("LABELS")
+            self.toggle_option("tracking", "labels")
         elif key == k["SHOW_SYMBOLS"]:
-            self.view3d.show("SYMBOLS")
+            self.toggle_option("tracking", "symbols")
         elif key == k["SHOW_BODIES"]:
-            self.view3d.show("BODIES")
+            self.toggle_option("tracking", "bodies")
 
-        elif key == k["SPEED_1"]:
-            self.speed = 1
-        elif key == k["SPEED_2"]:
-            self.speed = 2
-        elif key == k["SPEED_3"]:
-            self.speed = 3
-        elif key == k["SPEED_4"]:
-            self.speed = 4
-        elif key == k["SPEED_5"]:
-            self.speed = 5
-        elif key == k["SPEED_6"]:
-            self.speed = 6
-        elif key == k["SPEED_7"]:
-            self.speed = 7
-        elif key == k["SPEED_8"]:
-            self.speed = 8
-        elif key == k["SPEED_9"]:
-            self.speed = 9
-
+        elif key == k["SPEED_PLUS"]:
+            self.game_state.set_speed(1)
+        elif key == k["SPEED_MINUS"]:
+            self.game_state.set_speed(-1)
+        elif key == k["SPEED_PAUSE"]:
+            self.game_state.toggle_pause()
 
         elif key == k["ACC_PLUS"]:
-            self.player._orbit.accelerate(100)
+            self.game_state.player._orbit.accelerate(50)
         elif key == k["ACC_MINUS"]:
-            self.player._orbit.accelerate(-100)
+            self.game_state.player._orbit.accelerate(-50)
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # FIXME: only pass if is on viewport
         self.view3d.scroll(scroll_y)
 
     def tick(self):
-        for ship in self.scene.get("ships", ()):
-            ship._orbit.step(.25*self.speed)
+        self.game_state.tick()
         for panel in self.panels:
-            panel.update()
-        self.view3d.center_on(self.player.position)
+            panel.update(self)
+        coords = self.game_state.player.position
+        self.view3d.center_on(coords)

@@ -96,10 +96,10 @@ orbital_statuses = [
 manager = None
 orbit = None
 
-def load(window, batch, player):
+def load(window, game_view):
 
   global manager, orbit
-  orbit = player._orbit
+  orbit = game_view.game_state.player._orbit
 
   manager = Manager(
     VerticalContainer([
@@ -113,7 +113,7 @@ def load(window, batch, player):
     anchor = ANCHOR_BOTTOM_LEFT,
     is_movable = False,
     window = window,
-    batch = batch,
+    batch = game_view.ui_batch,
     theme = theme,
     offset = (20, 20)
     
@@ -165,7 +165,7 @@ def _format_pretty(n, u):
     return round(n, 6), u
 
 
-def update():
+def update(game_view):
   for k, kv in elements.items():
     el, units = kv
     v = getattr(orbit, k)

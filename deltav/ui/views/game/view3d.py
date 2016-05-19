@@ -36,7 +36,7 @@ class View3D:
 
     FONT_FACE="Droid Sans Mono"
 
-    def __init__(self, game_view, bounds):
+    def __init__(self, game_view, bounds, center_on):
 
         self.bx, self.by, self.w, self.h = bounds
 
@@ -54,19 +54,12 @@ class View3D:
         self.far = 10000000
         self.fov = 60
 
-        self._show = {
-            "ORBITS": True,
-            "LABELS": True,
-            "BODIES": True,
-            "SYMBOLS": True,
-        }
-
         # GL initialization
         glEnable(GL_BLEND)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
         glDepthFunc(GL_LEQUAL)
 
-        self.center_on(game_view.player.position)
+        self.center_on(center_on)
 
     def center_on(self, coords):
         self.center = numpy.array([0,0,0])
@@ -86,27 +79,33 @@ class View3D:
         glRotatef(self.ry, 0, 1, 0)
         glRotatef(self.rz, 0, 0, 1)
 
-    def render(self, scene):
+    def render(self, game_view):
+        scene = game_view.game_state.scene
         self.apply()
 
         for ship in scene.get("ships", ()): # passing in the night
 
-            orbit = [self._world_to_scene(p) for p in ship._orbit.plot]
+            if game_view.get_option("tracking", "orbits"):
+                orbit = [self._world_to_scene(p) for p in ship._orbit.plot]
 
-            if ship._orbit.is_elliptical:
-                self.draw_loop(orbit, self.ORBIT_COLOR)
-            else:
-                self.draw_line(orbit, self.ORBIT_COLOR)
+                if ship._orbit.is_elliptical:
+                    self.draw_loop(orbit, self.ORBIT_COLOR)
+                else:
+                    self.draw_line(orbit, self.ORBIT_COLOR)
 
             coords = self._world_to_scene(ship.position)
 
-            self.text(ship._name, coords)
-            self.draw_symbol(coords, self.SYMBOL_COLOR)
+            if game_view.get_option("tracking", "labels"):
+                self.text(ship._name, coords)
 
-        for planet in scene.get("bodies", ()): # rising to the surface
-            r = planet.radius * self.SCALE
-            p = self._world_to_scene(planet.position)
-            self.draw_sphere(p, r, self.BODY_COLOR)
+            if game_view.get_option("tracking", "symbols"):
+                self.draw_symbol(coords, self.SYMBOL_COLOR)
+
+        if game_view.get_option("tracking", "bodies"):
+            for planet in scene.get("bodies", ()): # rising to the surface
+                r = planet.radius * self.SCALE
+                p = self._world_to_scene(planet.position)
+                self.draw_sphere(p, r, self.BODY_COLOR)
 
         # Reset when we're done, for other rendering actions that need the
         # default pyglet behaviour
@@ -117,9 +116,6 @@ class View3D:
         glOrtho(0, width, 0, height, -1, 2)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
-
-    def show(self, k):
-        self._show[k] = not self._show[k]
     #
     # Rendering setup
     #
@@ -244,9 +240,6 @@ class View3D:
         BONUS: don't let labels be drawn on each other
         """
 
-        if not self._show["LABELS"]:
-            return
-
         x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
 
         if z < 1:
@@ -268,9 +261,6 @@ class View3D:
         Draw a flat symbol
         """
 
-        if not self._show["SYMBOLS"]:
-            return
-
         x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
 
         a = (x, y+offset, z)
@@ -285,10 +275,6 @@ class View3D:
 
 
     def draw_loop(self, verticies, color):
-
-        if not self._show["ORBITS"]:
-            return
-
         # Set up for more rendering
         self._perspective()
 
@@ -300,8 +286,6 @@ class View3D:
 
 
     def draw_line(self, verticies, color):
-        if not self._show["ORBITS"]:
-            return
         self._perspective()
         glColor3f(*color)
         glBegin(GL_LINE_STRIP)
@@ -311,10 +295,6 @@ class View3D:
 
 
     def draw_sphere(self, coords, radius, color):
-
-        if not self._show["BODIES"]:
-            return
-
         self._perspective()
 
         stacks = slices = 20
