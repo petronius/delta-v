@@ -14,7 +14,7 @@ from deltav.physics.orbit import pi
 from deltav.ships import MobShip, PlayerShip
 from deltav.ui.keyboard import bindings as k
 
-from deltav.gamestate import GameState
+from deltav.gamestate import GameState, _debug_boxes
 
 from .view3d import View3D
 from .panels import tracking as TrackingPanel
@@ -28,7 +28,7 @@ class GameView(deltav.ui.views.BaseView):
             ("bodies", True),
             ("orbits", True),
             ("symbols", True),
-        ])
+        ]),
     }
 
     def toggle_option(self, type_, name):
@@ -64,6 +64,8 @@ class GameView(deltav.ui.views.BaseView):
         for panel in self.panels:
             panel.load(deltav.ui.game_window, self)
 
+        self._focus = self.game_state.player
+
 
     def load(self):
         pass
@@ -72,7 +74,7 @@ class GameView(deltav.ui.views.BaseView):
         pass
 
     def on_draw(self):
-        self.view3d.render(self)
+        self.view3d.render(self, _debug_boxes)
         self.ui_batch.draw()
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
@@ -92,25 +94,78 @@ class GameView(deltav.ui.views.BaseView):
         elif key == k["SHOW_BODIES"]:
             self.toggle_option("tracking", "bodies")
 
-        elif key == k["SPEED_PLUS"]:
+        elif key == k["SET_SPEED_1"]:
             self.game_state.set_speed(1)
+        elif key == k["SET_SPEED_2"]:
+            self.game_state.set_speed(2)
+        elif key == k["SET_SPEED_3"]:
+            self.game_state.set_speed(3)
+        elif key == k["SET_SPEED_4"]:
+            self.game_state.set_speed(4)
+        elif key == k["SET_SPEED_5"]:
+            self.game_state.set_speed(5)
+        elif key == k["SET_SPEED_6"]:
+            self.game_state.set_speed(6)
+        elif key == k["SET_SPEED_7"]:
+            self.game_state.set_speed(7)
+        elif key == k["SET_SPEED_8"]:
+            self.game_state.set_speed(8)
+        elif key == k["SET_SPEED_9"]:
+            self.game_state.set_speed(9)
+
+        elif key == k["SPEED_PLUS"]:
+            self.game_state.set_speed(multiplier=2)
         elif key == k["SPEED_MINUS"]:
-            self.game_state.set_speed(-1)
+            self.game_state.set_speed(multiplier=.5)
+
         elif key == k["SPEED_PAUSE"]:
             self.game_state.toggle_pause()
+
+        elif key == k["CYCLE_TARGET"]:
+            self.game_state.cycle_target(self.game_state.player)
+        elif key == k["SHOOT_AT_TARGET_A"]:
+            self.game_state.shoot_at_target(self.game_state.player, "bullet")
+        elif key == k["SHOOT_AT_TARGET_T"]:
+            self.game_state.shoot_at_target(self.game_state.player, "torpedo")
 
         elif key == k["ACC_PLUS"]:
             self.game_state.player._orbit.accelerate(50)
         elif key == k["ACC_MINUS"]:
             self.game_state.player._orbit.accelerate(-50)
 
+        elif key == k["CYCLE_FOCUS"]:
+            self.cycle_focus()
+
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # FIXME: only pass if is on viewport
         self.view3d.scroll(scroll_y)
 
-    def tick(self):
-        self.game_state.tick()
+    def tick(self, dt):
+        self.game_state.tick(dt)
         for panel in self.panels:
-            panel.update(self)
-        coords = self.game_state.player.position
+            try:
+                panel.update(self)
+            except AssertionError:
+                pass # FIXME: "assert _is_loaded failing in pyglet gui code?
+        coords = self.get_focus().get_position()
         self.view3d.center_on(coords)
+
+    def cycle_focus(self):
+        objs = []
+        for k in sorted(self.game_state.scene):
+            objs += self.game_state.scene[k]
+        if self._focus in objs:
+            idx = objs.index(self._focus)
+        else:
+            idx = -1
+        try:
+            self._focus = objs[idx+1]
+        except IndexError:
+            self._focus=objs[0]
+
+    def get_focus(self):
+        if self._focus is None:
+            self.cycle_focus()
+        elif not self.game_state.in_scene(self._focus):
+            self.cycle_focus()
+        return self._focus

@@ -39,7 +39,7 @@ theme = Theme({"font": "Silkscreen",
 elements = {
   "eccentricity": (Label(""), None),
   "semi_major_axis": (Label(""), "m"),
-  # "inclination": (Label(""), "r"),
+  "inclination": (Label(""), "r"),
   # "long_of_asc_node": (Label(""), "r"),
   # "argument_of_periapsis": (Label(""), "r"),
   # "mean_anomaly": (Label(""), "r"),
@@ -55,13 +55,13 @@ orbital_statuses = [
     elements["eccentricity"][0],
   ],
   [
-    Label("a"),
+    Label("α"),
     elements["semi_major_axis"][0],
   ],
-  # [
-  #   Label("i"),
-  #   elements["inclination"][0],
-  # ],
+  [
+    Label("i"),
+    elements["inclination"][0],
+  ],
   # [
   #   Label("Ω"),
   #   elements["long_of_asc_node"][0],
@@ -78,10 +78,10 @@ orbital_statuses = [
   #   Label("E/D/F"),
   #   elements["eccentric_anomaly"][0],
   # ],
-  [
-    Label("p"),
-    elements["semi_latus_rectum"][0],
-  ],
+  # [
+  #   Label("p"),
+  #   elements["semi_latus_rectum"][0],
+  # ],
   [
     Label("Period"),
     elements["period"][0],

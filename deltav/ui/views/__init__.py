@@ -67,7 +67,7 @@ class BaseView(object):
         """
         pass
 
-    def tick(self):
+    def tick(self, dt):
         """
         Called on every window tick.
         """

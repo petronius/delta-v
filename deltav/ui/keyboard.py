@@ -10,14 +10,30 @@ from pyglet.window import key
 # that action.
 bindings = {
 
+    "SET_SPEED_1": key._1,
+    "SET_SPEED_2": key._2,
+    "SET_SPEED_3": key._3,
+    "SET_SPEED_4": key._4,
+    "SET_SPEED_5": key._5,
+    "SET_SPEED_6": key._6,
+    "SET_SPEED_7": key._7,
+    "SET_SPEED_8": key._8,
+    "SET_SPEED_9": key._9,
+
     "SPEED_PLUS": key.F,
     "SPEED_MINUS": key.S,
     "SPEED_PAUSE": key.SPACE,
+
+    "CYCLE_FOCUS": key.C,
 
     "SHOW_SYMBOLS": key.F4,
     "SHOW_ORBITS": key.F3,
     "SHOW_BODIES": key.F2,
     "SHOW_LABELS": key.F1,
+
+    "CYCLE_TARGET": key.T,
+    "SHOOT_AT_TARGET_A": key.Q,
+    "SHOOT_AT_TARGET_T": key.W,
 
     "ACC_PLUS": key.NUM_ADD,
     "ACC_MINUS": key.NUM_SUBTRACT,

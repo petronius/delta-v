@@ -62,8 +62,8 @@ class View3D:
         self.center_on(center_on)
 
     def center_on(self, coords):
-        self.center = numpy.array([0,0,0])
-        return
+        #self.center = numpy.array([0,0,0])
+        #return
         x, y, z = map(lambda x: x*self.SCALE, coords)
         self.center = numpy.array([x, y, z])
 
@@ -79,7 +79,7 @@ class View3D:
         glRotatef(self.ry, 0, 1, 0)
         glRotatef(self.rz, 0, 0, 1)
 
-    def render(self, game_view):
+    def render(self, game_view, _debug_boxes=None):
         scene = game_view.game_state.scene
         self.apply()
 
@@ -93,18 +93,52 @@ class View3D:
                 else:
                     self.draw_line(orbit, self.ORBIT_COLOR)
 
-            coords = self._world_to_scene(ship.position)
+            coords = self._world_to_scene(ship.get_position())
 
             if game_view.get_option("tracking", "labels"):
                 self.text(ship._name, coords)
 
             if game_view.get_option("tracking", "symbols"):
-                self.draw_symbol(coords, self.SYMBOL_COLOR)
+                self.draw_triangle(coords, self.SYMBOL_COLOR)
+
+        for bullet in scene.get("bullets", ()): # a hail of
+
+            if game_view.get_option("tracking", "orbits"):
+                orbit = [self._world_to_scene(p) for p in bullet._orbit.plot]
+
+                if bullet._orbit.is_elliptical:
+                    self.draw_loop(orbit, self.ORBIT_COLOR)
+                else:
+                    self.draw_line(orbit, self.ORBIT_COLOR)
+
+            coords = self._world_to_scene(bullet.get_position())
+
+            if game_view.get_option("tracking", "symbols"):
+                self.draw_diamond(coords, (255, 0, 0))
+
+        for debris in scene.get("debris", ()): # a hail of
+
+            if game_view.get_option("tracking", "orbits"):
+                orbit = [self._world_to_scene(p) for p in debris._orbit.plot]
+
+                if debris._orbit.is_elliptical:
+                    self.draw_loop(orbit, self.ORBIT_COLOR)
+                else:
+                    self.draw_line(orbit, self.ORBIT_COLOR)
+
+            coords = self._world_to_scene(debris.get_position())
+
+            if game_view.get_option("tracking", "symbols"):
+                self.draw_square(coords, (100, 100, 100))
+
+        if _debug_boxes:
+            for box in _debug_boxes:
+                self.draw_cube(*box)
 
         if game_view.get_option("tracking", "bodies"):
             for planet in scene.get("bodies", ()): # rising to the surface
                 r = planet.radius * self.SCALE
-                p = self._world_to_scene(planet.position)
+                p = self._world_to_scene(planet.get_position())
                 self.draw_sphere(p, r, self.BODY_COLOR)
 
         # Reset when we're done, for other rendering actions that need the
@@ -256,7 +290,7 @@ class View3D:
             ).draw()
 
 
-    def draw_symbol(self, coords, color, offset=5):
+    def draw_triangle(self, coords, color, offset=5):
         """
         Draw a flat symbol
         """
@@ -272,6 +306,92 @@ class View3D:
             ('v3f', a + b + c),
             ('c3B', color*3),
         )
+
+
+    def draw_diamond(self, coords, color, offset=5):
+        """
+        Draw a flat symbol
+        """
+
+        x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
+
+        a = (x, y+offset, z)
+        b = (x+offset, y, z)
+        c = (x, y-offset, z)
+        d = (x-offset, y, z)
+
+        self._flat()
+        pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
+            ('v3f', a + b + c + d),
+            ('c3B', color*4),
+        )
+
+
+    def draw_square(self, coords, color, offset=5):
+        """
+        Draw a flat symbol
+        """
+
+        x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
+
+        a = (x-offset, y+offset, z)
+        b = (x+offset, y+offset, z)
+        c = (x+offset, y-offset, z)
+        d = (x-offset, y-offset, z)
+
+        self._flat()
+        pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
+            ('v3f', a + b + c +d),
+            ('c3B', color*4),
+        )
+
+    def draw_cube(self, p1, p2):
+        p1 = self._world_to_scene(p1)
+        p2 = self._world_to_scene(p2)
+
+        color = (0.0, 0.0, 1) # the diagonal
+        self.draw_line((p1, p2), color)
+
+        self._perspective()
+
+        glColor3f(*color)
+        glBegin(GL_LINE_STRIP)
+        # top
+        glVertex3f(p1[0], p1[1], p1[2])        
+        glVertex3f(p1[0], p1[1], p2[2])
+
+        glVertex3f(p2[0], p1[1], p2[2])
+
+        glVertex3f(p2[0], p1[1], p1[2])
+        
+        glVertex3f(p1[0], p1[1], p1[2])
+        # bottom
+        glVertex3f(p1[0], p2[1], p1[2])        
+        glVertex3f(p1[0], p2[1], p2[2])
+        
+        glVertex3f(p2[0], p2[1], p2[2])
+        
+        glVertex3f(p2[0], p2[1], p1[2])
+        
+        glVertex3f(p1[0], p2[1], p1[2])
+        # sides
+        glEnd()
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(p1[0], p1[1], p2[2])
+        glVertex3f(p1[0], p2[1], p2[2])
+
+        glEnd()
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(p2[0], p1[1], p2[2])
+        glVertex3f(p2[0], p2[1], p2[2])
+
+        glEnd()
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(p2[0], p1[1], p1[2])
+        glVertex3f(p2[0], p2[1], p1[2])
+
+        glEnd()
+
 
 
     def draw_loop(self, verticies, color):

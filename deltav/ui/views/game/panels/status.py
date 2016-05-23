@@ -34,6 +34,7 @@ theme = Theme({"font": "Droid Sans Mono",
 
 manager = None
 ship_modules = None
+loaded = False
 
 def load(window, game_view):
 
@@ -92,7 +93,7 @@ def load(window, game_view):
     offset = (-10, 20)
 
   )
-  
+  loaded = True
   return manager
 
 

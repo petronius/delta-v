@@ -140,4 +140,4 @@ class GameWindow(pyglet.window.Window):
         event calls to the current view.
         """
         if self.view:
-            self.view.tick()
+            self.view.tick(dt)

@@ -1,6 +1,3 @@
-"""
-Dirty visualisation glue code
-"""
 
 import pyglet
 
