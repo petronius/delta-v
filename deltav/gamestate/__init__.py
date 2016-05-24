@@ -8,6 +8,11 @@ information.
 import time
 import pyglet
 
+import threading
+
+from multiprocessing.managers import BaseManager
+
+
 from numpy.linalg import norm
 
 from deltav.ships import MobShip, PlayerShip, Bullet, Debris
@@ -71,6 +76,37 @@ class GameState(object):
 
         self.current_time = 0.0
 
+    def get_debug_boxes(self):
+        return _debug_boxes
+
+    def get_player_orbit_data(self, keys):
+        data = {}
+        for key in keys:
+            data[key] = getattr(self.player._orbit, key)
+        return data
+
+    def get_scene_data(self):
+        data = {}
+        for k, v in self.scene.items():
+            data[k] = {}
+            for o in v:
+                if o._orbit:
+                    orbit = {
+                        "plot": o._orbit.plot if o._orbit else [],
+                        "is_elliptical": o._orbit.is_elliptical,
+                        "is_parabolic": o._orbit.is_parabolic,
+                        "is_hyperbolic": o._orbit.is_hyperbolic,
+                    }
+                else:
+                    orbit = {}
+                data[k][o.uuid] = {
+                    "name": o._name,
+                    "position": o.get_position(),
+                    "orbit": orbit,
+                    "radius": o.radius,
+                    "target": o.target.uuid if hasattr(o, "target") and o.target else None,
+                }
+        return data
 
 
     def remove_from_scene(self, *args):
@@ -93,19 +129,23 @@ class GameState(object):
 
 
     def cycle_target(self, ship):
+        if ship == "player":
+            ship = self.player
         target_list = list(filter(lambda x: x is not ship, self.scene["ships"][:]))
         target_list += self.scene["debris"]+self.scene["bullets"]
         ship.cycle_target(target_list)
+        print(ship, "targetting", ship.target)
 
 
     def shoot_at_target(self, ship, shot):
+        if ship == "player":
+            ship = self.player
         target = ship.target
         if target:
-            print(ship, "firing", target)
             bullet = ship.shoot_target(shot)
             self.scene["bullets"].append(bullet)
         else:
-            print("no target for", ship)
+            print("no target")
 
 
     def set_speed(self, s = None, multiplier = None):
@@ -115,32 +155,52 @@ class GameState(object):
             self.speed *= multiplier
         if self.speed < 1:
             self.speed = 1
-        elif self.speed > 1000:
-            self.speed = 1000
-        print("speed", self.speed)
+        elif self.speed > 2000:
+            self.speed = 2000
 
 
     def toggle_pause(self):
         self.paused = not self.paused
         print("paused", self.paused)
 
-    def tick(self, dt):
+    def start(self):
+        self.thread = threading.Thread(target=self.simulate)
+        self._running = True
+        self.thread.start()
+        print("Sim started!")
+
+    def stop(self):
+        self._running = False
+
+    def simulate(self):
+        while self._running:
+            self.tick()
+        return True
+
+    def poll(self):
+        return self._running
+
+    def tick(self):
+        time.sleep(1/(10*self.speed))
         global _debug_boxes
-        game_dt = 1*self.speed
-        self.current_time += dt
+        game_dt = 1
+        self.current_time += game_dt
         objs = self.scene["ships"] + self.scene["debris"] + self.scene["bullets"]
         if not self.paused:
             collision_checks = []
             # build list of destructables to check
             for o1 in objs:
-                if hasattr(o1, "tick"):
-                    o1.tick(dt) # let it update internal state
                 p0 = o1.get_position()
-                o1._orbit.step(1*self.speed)
+                if hasattr(o1, "game_tick"):
+                    o1.game_tick(game_dt) # let it update internal state
                 p1 = o1.get_position()
                 p_norm = norm(p0)
-                if o1.destructable:
-                    collision_checks.append((o1, p0, p1, p_norm))
+                # check for surface impact
+                if p_norm < o1._orbit.parent.radius:
+                    self.remove_from_scene(o1)
+                else:
+                    if o1.destructable:
+                        collision_checks.append((o1, p0, p1, p_norm))
             # now check list
             for idx, (o1, p0, p1, p_norm) in enumerate(collision_checks):
                 try:
@@ -161,15 +221,15 @@ class GameState(object):
                             # _debug_boxes.append(box_diagonals(p0_, p1_))
                             #print(o1, o2, (tuple(p0), tuple(p1)), (tuple(p0_), tuple(p1_)))
                             if boxes_intersect((p0, p1), (p0_, p1_)):
-                                print("collision", o1, o2)
-                                _, impact_vector1 = o2._orbit.get_position()
-                                _, impact_vector2 = o1._orbit.get_position()
+                                impact_vector1 = o2.get_velocity()
+                                impact_vector2 = o1.get_velocity()
                                 self.scene["debris"] += o1.explode(impact_vector1)
                                 self.scene["debris"] += o2.explode(impact_vector2)
                                 self.remove_from_scene(o1, o2)
                                 continue # dont add o1 to collision checks, it blew up (FIXME: breaks 3-way collisions)
                 except KeyError:
                     pass # end of list
+
 
 def box_diagonals(*pts):
     top_right = (
@@ -201,3 +261,15 @@ def boxes_intersect(c1, c2):
        c1_bottom_left[2] > c2_top_right[2]:
         return False
     return True
+
+
+class GameManager(BaseManager):
+    pass
+
+GameManager.register("GameState", GameState)
+
+def new_game_state():
+    manager = GameManager()
+    manager.start()
+    state = manager.GameState()
+    return state

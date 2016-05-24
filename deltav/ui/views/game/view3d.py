@@ -79,67 +79,68 @@ class View3D:
         glRotatef(self.ry, 0, 1, 0)
         glRotatef(self.rz, 0, 0, 1)
 
-    def render(self, game_view, _debug_boxes=None):
-        scene = game_view.game_state.scene
+    def render(self, game_view):
+        scene = game_view.game_state.get_scene_data()
+        _debug_boxes = game_view.game_state.get_debug_boxes()
         self.apply()
 
-        for ship in scene.get("ships", ()): # passing in the night
+        for uuid, ship in scene["ships"].items(): # passing in the night
 
             if game_view.get_option("tracking", "orbits"):
-                orbit = [self._world_to_scene(p) for p in ship._orbit.plot]
+                orbit = [self._world_to_scene(p) for p in ship["orbit"]["plot"]]
 
-                if ship._orbit.is_elliptical:
+                if ship["orbit"]["is_elliptical"]:
                     self.draw_loop(orbit, self.ORBIT_COLOR)
                 else:
                     self.draw_line(orbit, self.ORBIT_COLOR)
 
-            coords = self._world_to_scene(ship.get_position())
+            coords = self._world_to_scene(ship["position"])
 
             if game_view.get_option("tracking", "labels"):
-                self.text(ship._name, coords)
+                self.text(ship["name"], coords)
 
             if game_view.get_option("tracking", "symbols"):
                 self.draw_triangle(coords, self.SYMBOL_COLOR)
 
-        for bullet in scene.get("bullets", ()): # a hail of
+        for uuid, bullet in scene["bullets"].items(): # a hail of
 
             if game_view.get_option("tracking", "orbits"):
-                orbit = [self._world_to_scene(p) for p in bullet._orbit.plot]
+                orbit = [self._world_to_scene(p) for p in bullet["orbit"]["plot"]]
 
-                if bullet._orbit.is_elliptical:
+                if bullet["orbit"]["is_elliptical"]:
                     self.draw_loop(orbit, self.ORBIT_COLOR)
                 else:
                     self.draw_line(orbit, self.ORBIT_COLOR)
 
-            coords = self._world_to_scene(bullet.get_position())
+            coords = self._world_to_scene(bullet["position"])
 
             if game_view.get_option("tracking", "symbols"):
                 self.draw_diamond(coords, (255, 0, 0))
 
-        for debris in scene.get("debris", ()): # a hail of
+        for uuid, debris in scene["debris"].items(): # a hail of
 
             if game_view.get_option("tracking", "orbits"):
-                orbit = [self._world_to_scene(p) for p in debris._orbit.plot]
+                orbit = [self._world_to_scene(p) for p in debris["orbit"]["plot"]]
 
-                if debris._orbit.is_elliptical:
+                if debris["orbit"]["is_elliptical"]:
                     self.draw_loop(orbit, self.ORBIT_COLOR)
                 else:
                     self.draw_line(orbit, self.ORBIT_COLOR)
 
-            coords = self._world_to_scene(debris.get_position())
+            coords = self._world_to_scene(debris["position"])
 
             if game_view.get_option("tracking", "symbols"):
                 self.draw_square(coords, (100, 100, 100))
 
+        if game_view.get_option("tracking", "bodies"):
+            for uuid, planet in scene["bodies"].items(): # rising to the surface
+                r = planet["radius"] * self.SCALE
+                p = self._world_to_scene(planet["position"])
+                self.draw_sphere(p, r, self.BODY_COLOR)
+
         if _debug_boxes:
             for box in _debug_boxes:
                 self.draw_cube(*box)
-
-        if game_view.get_option("tracking", "bodies"):
-            for planet in scene.get("bodies", ()): # rising to the surface
-                r = planet.radius * self.SCALE
-                p = self._world_to_scene(planet.get_position())
-                self.draw_sphere(p, r, self.BODY_COLOR)
 
         # Reset when we're done, for other rendering actions that need the
         # default pyglet behaviour

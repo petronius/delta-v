@@ -10,6 +10,8 @@ from pyglet.window import key
 # that action.
 bindings = {
 
+    "QUIT": key.ESCAPE,
+
     "SET_SPEED_1": key._1,
     "SET_SPEED_2": key._2,
     "SET_SPEED_3": key._3,

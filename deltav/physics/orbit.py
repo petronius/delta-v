@@ -54,7 +54,7 @@ class Orbit(object):
         self.v_position = array(v_position)
         self.v_velocity = array(v_velocity)
 
-        self.propery_cache = {}
+        self._property_cache = {}
         self._positions_cache = {}
 
         self.t_delta = _float("0")
@@ -373,7 +373,7 @@ class Orbit(object):
         return v_position, v_velocity
 
 
-    def lambert_deltas(self, p2, v2, time, tm = 1):
+    def lambert_deltas(self, p1, v1, p2, v2, time, tm = 1):
         """
         Find the delta-vs needed to perform an intercept from the current orbit
         onto the target orbit, using the universal variable solution for
@@ -383,7 +383,6 @@ class Orbit(object):
         """
         # Vallado 7.6, algo 55
         # see also method from Sharaf, Saad, and Nouh, 2003 for another method
-        p1, v1 = self.get_position()
         mag_p1 = norm(p1)
         mag_p2 = norm(p2)
         mags = mag_p1 * mag_p2

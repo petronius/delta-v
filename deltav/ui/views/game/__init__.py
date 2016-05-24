@@ -4,17 +4,19 @@ from collections import OrderedDict
 import numpy
 import pyglet
 
+import deltav.app
 import deltav.ui
 import deltav.physics.body
 
 from pyglet.gl import *
 from numpy import *
 
+
 from deltav.physics.orbit import pi
 from deltav.ships import MobShip, PlayerShip
 from deltav.ui.keyboard import bindings as k
 
-from deltav.gamestate import GameState, _debug_boxes
+from deltav.gamestate import new_game_state
 
 from .view3d import View3D
 from .panels import tracking as TrackingPanel
@@ -40,11 +42,12 @@ class GameView(deltav.ui.views.BaseView):
 
     def __init__(self):
 
-        self.game_state = GameState() # FIXME: on_load
+        self.game_state = new_game_state() # FIXME: on_load
+        self.game_state.start()
 
         self.ui_batch = pyglet.graphics.Batch()
 
-        coords = self.game_state.player.position
+        #coords = self.game_state.player.position
         self.view3d = View3D(self,
             (
              0, #5,
@@ -52,7 +55,7 @@ class GameView(deltav.ui.views.BaseView):
              deltav.ui.game_window.width, #//2 - 10,
              deltav.ui.game_window.height, #//2 -10,
             ),
-            coords
+            (0,0,0)
         )
 
 
@@ -64,7 +67,7 @@ class GameView(deltav.ui.views.BaseView):
         for panel in self.panels:
             panel.load(deltav.ui.game_window, self)
 
-        self._focus = self.game_state.player
+        # self._focus = self.game_state.player
 
 
     def load(self):
@@ -74,7 +77,7 @@ class GameView(deltav.ui.views.BaseView):
         pass
 
     def on_draw(self):
-        self.view3d.render(self, _debug_boxes)
+        self.view3d.render(self)
         self.ui_batch.draw()
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
@@ -122,50 +125,55 @@ class GameView(deltav.ui.views.BaseView):
             self.game_state.toggle_pause()
 
         elif key == k["CYCLE_TARGET"]:
-            self.game_state.cycle_target(self.game_state.player)
+            self.game_state.cycle_target("player")
         elif key == k["SHOOT_AT_TARGET_A"]:
-            self.game_state.shoot_at_target(self.game_state.player, "bullet")
+            self.game_state.shoot_at_target("player", "bullet")
         elif key == k["SHOOT_AT_TARGET_T"]:
-            self.game_state.shoot_at_target(self.game_state.player, "torpedo")
+            self.game_state.shoot_at_target("player", "torpedo")
 
-        elif key == k["ACC_PLUS"]:
-            self.game_state.player._orbit.accelerate(50)
-        elif key == k["ACC_MINUS"]:
-            self.game_state.player._orbit.accelerate(-50)
+        elif key == k["QUIT"]:
+            self.game_state.stop()
+            deltav.app.game_app.user_quit()
 
-        elif key == k["CYCLE_FOCUS"]:
-            self.cycle_focus()
+        # elif key == k["ACC_PLUS"]:
+        #     self.game_state.player._orbit.accelerate(50)
+        # elif key == k["ACC_MINUS"]:
+        #     self.game_state.player._orbit.accelerate(-50)
+
+        # elif key == k["CYCLE_FOCUS"]:
+        #     self.cycle_focus()
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # FIXME: only pass if is on viewport
         self.view3d.scroll(scroll_y)
 
     def tick(self, dt):
-        self.game_state.tick(dt)
         for panel in self.panels:
             try:
                 panel.update(self)
             except AssertionError:
                 pass # FIXME: "assert _is_loaded failing in pyglet gui code?
-        coords = self.get_focus().get_position()
+        # coords = self.get_focus().get_position()
+        coords = (0,0,0)
         self.view3d.center_on(coords)
 
-    def cycle_focus(self):
-        objs = []
-        for k in sorted(self.game_state.scene):
-            objs += self.game_state.scene[k]
-        if self._focus in objs:
-            idx = objs.index(self._focus)
-        else:
-            idx = -1
-        try:
-            self._focus = objs[idx+1]
-        except IndexError:
-            self._focus=objs[0]
 
-    def get_focus(self):
-        if self._focus is None:
-            self.cycle_focus()
-        elif not self.game_state.in_scene(self._focus):
-            self.cycle_focus()
-        return self._focus
+    # def cycle_focus(self):
+    #     objs = []
+    #     for k in sorted(self.game_state.scene):
+    #         objs += self.game_state.scene[k]
+    #     if self._focus in objs:
+    #         idx = objs.index(self._focus)
+    #     else:
+    #         idx = -1
+    #     try:
+    #         self._focus = objs[idx+1]
+    #     except IndexError:
+    #         self._focus=objs[0]
+
+    # def get_focus(self):
+    #     if self._focus is None:
+    #         self.cycle_focus()
+    #     elif not self.game_state.in_scene(self._focus):
+    #         self.cycle_focus()
+    #     return self._focus

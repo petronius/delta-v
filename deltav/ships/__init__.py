@@ -59,11 +59,9 @@ class BaseShip(Body):
                 self.target = None
         else:
             self.target = None
-        print(self, "targetting", self.target)
 
 
     def shoot_target(self, shot):
-        p1, v1 = self._orbit.get_position()
 
         if shot == "bullet":
             # solve lambert's problem for the new orbit we want to create. we don't
@@ -71,12 +69,12 @@ class BaseShip(Body):
             t = 10
             while True:
                 try:
+                    p1, v1 = self._orbit.get_position()
                     t_orbit = self.target._orbit
                     t_epoch = t_orbit.t_delta
                     new_epoch = t_epoch + t
                     p2, v2 = self.target._orbit.get_position(new_epoch)
-                    new_v, _ = self._orbit.lambert_deltas(p2, v2, t)
-                    print("time", t)
+                    new_v, _ = self._orbit.lambert_deltas(p1, v1, p2, v2, t)
                 except ValueError: # invalid orbit for the small t we are attempting
                     # FIXME: should be a better heuristic for this
                     t *= 1.1
@@ -89,13 +87,14 @@ class BaseShip(Body):
             bullet.orbit(self._orbit.parent, p1, new_v)
 
         elif shot == "torpedo":
+            p1, v1 = self._orbit.get_position()
             # get direction of bad guy
             p2 = self.target.get_position()
             # re-center on us
             direction = p2 - p1
             unit_vector = direction/norm(direction)
             # fire out the tubes at speed
-            unit_vector *= 500
+            unit_vector *= 1000
             bullet = Torpedo(self.target)
             bullet.orbit(self._orbit.parent, p1, unit_vector + v1)
 
@@ -106,7 +105,6 @@ class BaseShip(Body):
 
 
     def explode(self, impact_vector = None):
-        print(self, "exploded!")
         objs = []
         for _ in range(random.randint(2, 10)):
             p1, v1 = self._orbit.get_position()
@@ -119,7 +117,6 @@ class BaseShip(Body):
                 random.randint(-100, 100),
             ])
             debris = Debris()
-            print("spawning", debris, delta_v, v1)
             debris.orbit(self._orbit.parent, p1, delta_v + v1)
             objs.append(debris)
         return objs
@@ -181,15 +178,6 @@ class BaseShip(Body):
         return tuple(position)
 
 
-    def accelerate(self, vector):
-        print("--")
-        print(self._orbit.v_velocity)
-        self._orbit.v_velocity += vector
-        print(self._orbit.v_velocity)
-        self._orbit._property_cache = {}
-        print(self._orbit.v_velocity)
-
-
 
     
 
@@ -203,15 +191,16 @@ class MobShip(BaseShip):
 
 class Missile(BaseShip):
 
-    invuln_time = 2
-    def __init__(self):
-        super(Missile, self).__init__("blap", 1)
+    invuln_time = 30
+    def __init__(self, name = None):
+        super(Missile, self).__init__(name or "(unknown)", 1)
         self.destructable = False
         self.clock = 0
 
-    def tick(self, dt):
+    def game_tick(self, dt):
+        super(Missile, self).game_tick(dt)
         self.clock += dt
-        if self.clock > self.invuln_time:
+        if self.destructable == False and self.clock > self.invuln_time:
             self.destructable = True
 
 
@@ -231,19 +220,21 @@ class Torpedo(Missile):
     base_mass = 145 # kg
 
     def __init__(self, target):
-        super(Torpedo, self).__init__()
+        super(Torpedo, self).__init__("M1 torpedo")
         self.target = target
         self.adjustments = 3
+        self.time_to_impact = None
     
     def explode(self, *args, **kwargs):
         return []
     
-    def tick(self, dt):
-        super(Torpedo, self).tick(dt)
-        if self.clock > 10 and self.adjustments > 0:
+    def game_tick(self, dt):
+        super(Torpedo, self).game_tick(dt)
+        if self.clock > 100 and self.adjustments > 0:
             self.adjust_course()
             self.clock = 0
-            self.adjustments -= 1
+        if self.time_to_impact is not None:
+            self.time_to_impact -= dt
 
     def adjust_course(self):
         # solve lambert's problem for the new orbit we want to create. we don't
@@ -251,19 +242,24 @@ class Torpedo(Missile):
         t = 10
         while True:
             try:
+                p1, v1 = self._orbit.get_position()
                 t_orbit = self.target._orbit
                 t_epoch = t_orbit.t_delta
                 new_epoch = t_epoch + t
                 p2, v2 = self.target._orbit.get_position(new_epoch)
-                new_v, _ = self._orbit.lambert_deltas(p2, v2, t)
-                print("time", t)
+                new_v, _ = self._orbit.lambert_deltas(p1, v1, p2, v2, t)
+                # only adjust if new course is faster
+                # FIXME: or if won't intercept
+                if self.time_to_impact is None or abs(self.time_to_impact - t) < 10:
+                    self._orbit.set_veloctiy(new_v)
+                    self.time_to_impact = t
+                    self.adjustments -= 1
             except ValueError: # invalid orbit for the small t we are attempting
                 # FIXME: should be a better heuristic for this
                 t *= 1.1
                 continue
             break
         # FIXME: this is super imba
-        self._orbit.set_veloctiy(new_v)
     def _destruct_enable(self, dt, *args, **kwargs):
         self.destructable = True
 
@@ -273,7 +269,7 @@ class Debris(Missile):
     base_mass = 10 # kg
     
     def __init__(self,):
-        super(Debris, self).__init__()
+        super(Debris, self).__init__("(junk)")
     
     def explode(self, *args, **kwargs):
         return []

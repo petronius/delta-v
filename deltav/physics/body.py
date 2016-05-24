@@ -15,11 +15,12 @@ class Body(object):
 
     
     def __init__(self, mass = 0, radius = 0):
+        self._name = ""
         self._mass = mass
         self._radius = radius
         self._orbit = None
 
-        self.id = uuid.uuid4()
+        self.uuid = uuid.uuid4().hex
 
         self.propery_cache = {}
 
@@ -28,6 +29,14 @@ class Body(object):
         if self._orbit:
             p, v = self._orbit.get_position()
             return p
+        else:
+            return (0, 0, 0)
+
+
+    def get_velocity(self):
+        if self._orbit:
+            p, v = self._orbit.get_position()
+            return v
         else:
             return (0, 0, 0)
 
@@ -97,3 +106,7 @@ class Body(object):
         Set the orbit of the ship around an object
         """
         self._orbit = Orbit(parent, self, position, velocity)
+
+    def game_tick(self, dt):
+        if self._orbit:
+            self._orbit.step(dt)

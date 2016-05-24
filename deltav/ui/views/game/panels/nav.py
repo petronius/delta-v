@@ -99,7 +99,7 @@ orbit = None
 def load(window, game_view):
 
   global manager, orbit
-  orbit = game_view.game_state.player._orbit
+  orbit = game_view.game_state.get_player_orbit_data(elements.keys())
 
   manager = Manager(
     VerticalContainer([
@@ -168,7 +168,7 @@ def _format_pretty(n, u):
 def update(game_view):
   for k, kv in elements.items():
     el, units = kv
-    v = getattr(orbit, k)
+    v = orbit[k]
     v, u = _format_pretty(v, units)
     s = "%s %s" % (v, u)
     el.set_text(s)
