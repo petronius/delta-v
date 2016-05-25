@@ -34,12 +34,12 @@ class GameState(object):
 
         player = PlayerShip('SASE C-3402 <font face="Droid Sans Fallback">黄河</font> Yellow River')
         player.orbit(earth, (
-            6524.834 * 1000,
+            6524.834 * 1200,
             0,
             0,
         ), (
             0,
-            7.81599286557539 * 1000,
+            7.81599286557539 * 1200,
             0,
         ))
 
@@ -54,14 +54,13 @@ class GameState(object):
             0,
         ))
 
-        ships = [player, shuttle]
+        ships = [player]#, shuttle]
 
-        for tle in load_tle_file("data/celestrak/stations.txt", max=5):
+        for tle in load_tle_file("data/celestrak/stations.txt", max=10):
             ship = MobShip(tle["name"])
-            o = Orbit.from_tle(tle, earth, ship)
-            ship._orbit = o
+            vecs = Orbit.vecs_from_tle(tle, earth, ship)
+            ship.orbit(earth, *vecs)
             ships.append(ship)
-
 
         self.player = player
 

@@ -4,13 +4,14 @@ Two-body Keplarian orbit modelling.
 
 from math import floor
 from numpy import (
+    isnan,
     cross,
     pi, Inf,
     sqrt,
     sign,
     floor,
     cos, arccos, cosh, arccosh,
-    sin, sinh,
+    sin, sinh, arcsin,
     tan, arctan, arctan2,
     dot,
     log,
@@ -37,6 +38,8 @@ class Orbit(object):
 
     # The gravitational constant
     G = _float("6.67408e-11")
+    # Unit vector
+    K = array([0, 0, 1])
 
     # Used for comparisons, because of floating point rounding error
     ACCURACY = _float("1e-12")
@@ -105,12 +108,56 @@ class Orbit(object):
 
     
     # Define properties for the classical orbital elements
-    
+
+    @cached_property
+    def true_anomaly(self):
+        v = arccos(dot(self.v_eccentricity, self.v_position)/(self.eccentricity * self.mag_position))
+        if dot(self.v_position, self.v_velocity) < 0:
+            v = 2*pi - v
+        return v
+
+
+    @cached_property
+    def v_ascending_node(self):
+        """
+        Node vector for the ascending node. (n')
+        """
+        n = cross(self.K, self.v_angular_momentum)
+        if norm(n) < self.ACCURACY:
+            return array([1, 0, 0])
+        return n
+
+
+    @cached_property
+    def long_of_ascending_node(self):
+        """
+        Longitude of the ascending node (Ω)
+        """
+        l = arccos(self.v_ascending_node[0]/norm(self.v_ascending_node))
+        if abs(self.v_ascending_node[1]) < self.ACCURACY:
+            l = 2*pi - l
+        return l
+
+
+    @cached_property
+    def argument_of_periapsis(self):
+        """
+        Argument of periapsis (ω)
+        """
+        omega = arccos(
+            dot(self.v_ascending_node, self.v_eccentricity)
+            /
+            (norm(self.v_ascending_node) * self.eccentricity)
+        )
+        if self.v_eccentricity[2] < 0:
+            omega = 2*pi - omega
+        return omega
+
 
     @cached_property
     def gravitational_parameter(self):
         """
-        Standard gravitational parameter of the parent body.
+        Standard gravitational parameter of the parent body. (μ)
         """
         return self.G * self.parent.mass
 
@@ -152,6 +199,19 @@ class Orbit(object):
             (dot(self.v_position, self.v_velocity) * self.v_velocity)
         )
 
+
+    @cached_property
+    def eccentric_anomaly(self):
+        """
+        Eccentric anomaly (E)
+        """
+        e = arctan(
+            (sqrt(1 - self.eccentricity**2) * sin(self.true_anomaly))
+            /
+            (self.eccentricity + cos(self.true_anomaly))
+        )
+        e %= 2*pi
+        return e
 
     @cached_property
     def eccentricity(self):
@@ -199,6 +259,10 @@ class Orbit(object):
         else:
             return None
 
+    @cached_property
+    def mean_motion(self):
+        return 2*pi/self.period
+
 
     @cached_property
     def semi_latus_rectum(self):
@@ -210,8 +274,7 @@ class Orbit(object):
 
     @cached_property
     def inclination(self):
-        z = self.v_position[2]
-        return arccos(z/abs(self.mag_position))
+        return arccos(self.v_angular_momentum[2]/norm(self.v_angular_momentum))
    
 
     def _stumpff(self, psi):
@@ -466,23 +529,13 @@ class Orbit(object):
 
         FIXME: Should really do this in OpenGL. use shader? https://www.opengl.org/discussion_boards/showthread.php/173136-drawing-hyperbola-in-openGL
         """
-        plot = []
-        if not self.is_elliptical:
-            backward = [0 - 30 * i for i in range(1, 300)]
-            forwards = [30 * i for i in range(0, 300)]
-            steps = backward[::-1] + forwards
-            for step in steps:
-                position, _ = self.get_position(step)
-                plot.append(position)
-        else:
-            n = int(log(self.period)*20) # roughly tie it to size
-            step_size = 2*pi/n
-            for step in range(1, n):
-                angle = step_size * step
-                t = 1/((2*pi/self.period)/angle) # angle is used as mean anomaly, then we solve the equation for time. FIXME: doesn't work
-                position, _ = self.get_position(t)
-                plot.append(position)
-        return tuple(plot)
+        points = []
+        start, limit, step = 0, 2*pi, 2*pi/100
+        while start < limit:
+            position, _ = self.position_from_true_anomaly(start)
+            points.append(position)
+            start += step
+        return points
 
 
     #
@@ -502,7 +555,44 @@ class Orbit(object):
         return self._alpha > 0 and not self.is_parabolic
 
     @classmethod
-    def from_tle(cls, tle, parent, satellite, epoch = None):
+    def _reverse(cls,
+        true_anomaly,
+        eccentric_anomaly,
+        eccentricity,
+        gravitational_parameter,
+        semi_major_axis,
+        long_of_ascending_node,
+        inclination,
+        argument_of_periapsis,
+    ):
+
+        r_distance = semi_major_axis * (1 - eccentricity * cos(eccentric_anomaly))
+
+        pos_orbital = r_distance * array([
+            cos(true_anomaly),
+            sin(true_anomaly),
+            0,
+        ])
+
+        vel_orbital = sqrt(gravitational_parameter*semi_major_axis)/r_distance * array([
+            -sin(eccentric_anomaly),
+            sqrt(1 - eccentricity**2) * cos(eccentric_anomaly),
+            0,
+        ])
+
+        v_position = cls._rotate(pos_orbital, long_of_ascending_node, inclination, argument_of_periapsis)
+        v_velocity = cls._rotate(vel_orbital, long_of_ascending_node, inclination, argument_of_periapsis)
+
+        return v_position, v_velocity
+
+    @classmethod
+    def _rotate(cls, r, Ω, ι, ω):
+        r = r[:, newaxis]
+        r = (Rz(-Ω)*Rx(-ι)*Rz(-ω)).dot(r)
+        return squeeze(asarray(r))
+
+    @classmethod
+    def vecs_from_tle(cls, tle, parent, satellite, epoch = None):
         """
         Only works for kepler (elliptical) orbits.
         """
@@ -513,10 +603,10 @@ class Orbit(object):
             interval = tle["epoch"] - epoch
             delta_t = interval.seconds + interval.days * 86400
 
-        grav_param = cls.G * parent.mass
-        semi_major_axis = cbrt((tle["mean_motion"]/(2*pi))**2*grav_param)
+        gravitational_parameter = cls.G * parent.mass
+        semi_major_axis = cbrt((tle["mean_motion"]/(2*pi))**2*gravitational_parameter)
 
-        mean_anomaly = tle["mean_anomaly"] + delta_t * sqrt(grav_param/semi_major_axis**3)
+        mean_anomaly = tle["mean_anomaly"] + delta_t * sqrt(gravitational_parameter/semi_major_axis**3)
         mean_anomaly %= 2*pi
 
         eccentricity = tle["eccentricity"]
@@ -527,24 +617,32 @@ class Orbit(object):
         arg2 = sqrt(1 - eccentricity) * cos(eccentric_anomaly/2)
         true_anomaly = 2 * arctan2(arg1, arg2)
 
-        r_distance = semi_major_axis * (1 - eccentricity * cos(eccentric_anomaly))
+        return cls._reverse(
+            true_anomaly,
+            eccentric_anomaly, 
+            eccentricity, 
+            gravitational_parameter, 
+            semi_major_axis, 
+            tle["long_of_ascending_node"], 
+            tle["inclination"], 
+            tle["argument_of_periapsis"]
+        )
 
-        pos_orbital = r_distance * array([
-            cos(true_anomaly),
-            sin(true_anomaly),
-            0,
-        ])
 
-        vel_orbital = sqrt(grav_param*semi_major_axis)/r_distance * array([
-            -sin(eccentric_anomaly),
-            sqrt(1 - eccentricity**2) * cos(eccentric_anomaly),
-            0,
-        ])
+    def position_from_true_anomaly(self, true_anomaly):
+        """
+        Get a position based on a value for the true anomaly
+        """
 
-        O = tle["long_of_ascending_node"]
-        i = tle["inclination"]
-        w = tle["argument_of_periapsis"]
+        eccentric_anomaly = arccos((self.eccentricity+cos(true_anomaly))/(1 + self.eccentricity*cos(true_anomaly)))
 
-        v_position = (Rz(-O) * Rx(-i) * Rz(-w)).dot(pos_orbital[:, newaxis])
-        v_velocity = (Rz(-O) * Rx(-i) * Rz(-w)).dot(vel_orbital[:, newaxis])
-        return cls(parent, satellite, squeeze(asarray(v_position)), squeeze(asarray(v_velocity)))
+        return self._reverse(
+            true_anomaly,
+            eccentric_anomaly, 
+            self.eccentricity, 
+            self.gravitational_parameter, 
+            self.semi_major_axis, 
+            self.long_of_ascending_node, 
+            self.inclination, 
+            self.argument_of_periapsis
+        )
