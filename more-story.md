@@ -10,10 +10,9 @@ output, and a second space age was born.
 The moon, the inner solar system, and finally the rocks and satellites of
 the outer solar system were colonized and industrialized. A universe that had
 been shruk by jet-travel and networked computer systems expanded again,
-dramatically.
+suddenly and dramatically.
 
 Out in the depths of space, some found their fortune. Others, a new home.
-For a few, it meant peace and quiet, or just a place to lay low. 
 Political systems grew and adapted, societies fragmented and sythensized,
 and within a few generations everything had changed.
 
@@ -25,33 +24,40 @@ escape.
 Forced by nature to cut long, graceful curves over the surface of the
 cosmos, all space-ship captains know that one number is binding, one
 number answers the question "can I reach my destination?" This second
-tyranny is known as "delta-v" (Δv).
+tyranny, the relationship between movement and change in velocity, is known as 
+"delta-v" (Δv).
 
 
-Setting
-=======
+GAMEPLAY THINGS TO REMEMBER
+===========================
 
-The year is 2192. The heaving metropolis of civilization is Earth and her
-lunar and lagrangian colonies. On Mars, the "second homeworld", the polar
-cities thrive, and many eke out harder, but sometimes very lucrative,
-existences in the sub-tropical and equatorial regions.
+- EGA Trek (explore and shoot suff)
+- Resupply
+- Faction alignment (think Deus Ex, not WoW rep)
+- You are playing as your crew (the ship), not your captain (the person), like in *FTL*
 
-But there are many people who avoid the homeworlds, either because they
-are scientists on long expeditions to the Kuiper belt, or for other more
-esoteric reasons. After all, every empire has its backwaters.
+## Things I am bored by
 
-... some bullshit political conflict ...
-
-Your ship
----------
-
-FLAG: International Space Colonization Authority (ISCA)
-TYPE: *Edmund Haley*-class long-range patrol corvette
-
-REGISTRY: FR-2161
-NAME: Daedalus
-HOME PORT: ISCA Command (New Berlin)
-
-LAUNCHED: April 14, 2192 (Earth Standard Time)
+- RNGsus
+- NPC shops
+- Powerful high-tech kit that can't take care of itself
 
 
+STORY MODE NOTES
+================
+
+- Blap stuff.
+- Resist urge to go all Kim Stanley Robinson, no one cares.
+- Need a good MacGuffin (jump drive?)
+- A dose of Oregon Trail, perhaps?
+
+## Missions
+
+1. Get from New Berlin to Mars, find out why they shot the sheriff.
+    - Find out they didn't, go after who did (outer solar system story)
+        - Eventually leads to (2)
+    - Find out they did, start a war (blap blap)
+        - Go chasing something as part of campaign, leads to (2)
+2. Go chasing an Ansible.
+    - Turns out its an FTL
+    - Use it to blap some shit

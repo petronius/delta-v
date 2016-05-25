@@ -18,58 +18,56 @@ from numpy.linalg import norm
 from deltav.ships import MobShip, PlayerShip, Bullet, Debris
 from deltav.physics.body import Body
 from deltav.physics.helpers import distance
+from deltav.physics.util import load_tle_file
+from deltav.physics.orbit import Orbit
 
 _debug_boxes = []
 
 class GameState(object):
-
-    collision_tolerance = 1000 # m. FIXME: should use obj sizes
 
     def __init__(self):
 
         self.speed = 1
         self.paused = False
 
-        planet = Body(5.972e24, 6371000) 
+        earth = Body(5.972e24, 6371000) 
 
         player = PlayerShip('SASE C-3402 <font face="Droid Sans Fallback">黄河</font> Yellow River')
-        player.orbit(planet, (6524.834 * 1200,0,0), (0,7.81599286557539 * 1200,0))
-
-        shuttle, station = (
-            MobShip("OV-103 Discovery"),
-            MobShip("ISS"),
-        )
-
-        v_position = (
-            -9.389136074764635E+02 * 1200,
-            -5.116319908091118E+03 * 1200,
-            4.342059664304661E+03 * 1200,
-        )
-
-        v_velocity = (
-            6.628784989010491E+00 * 1200,
-            1.718224103100249E+00 * 1200,
-            3.457710395445335E+00 * 1200,
-        )
-
-        station.orbit(planet, v_position, v_velocity)
-        shuttle.orbit(planet, (
-            0,
+        player.orbit(earth, (
             6524.834 * 1000,
-            0
+            0,
+            0,
         ), (
-            -30 * 1000,
+            0,
+            7.81599286557539 * 1000,
+            0,
+        ))
+
+        shuttle = MobShip("OV-103 Discovery")
+        shuttle.orbit(earth, (
+            0,
+            0,
+            6524.834 * 1200,
+        ), (
+            7.81599286557539 * 1000,
             0,
             0,
         ))
 
-        ships = [player, station] # shuttle, station)
+        ships = [player, shuttle]
+
+        for tle in load_tle_file("data/celestrak/stations.txt", max=5):
+            ship = MobShip(tle["name"])
+            o = Orbit.from_tle(tle, earth, ship)
+            ship._orbit = o
+            ships.append(ship)
+
 
         self.player = player
 
         self.scene = {
             "ships": ships,
-            "bodies": [planet,],
+            "bodies": [earth,],
             "debris": [],
             "bullets": [],
         }
@@ -77,35 +75,71 @@ class GameState(object):
         self.current_time = 0.0
 
     def get_debug_boxes(self):
+        """
+        Retrieved stored collision boxes for render
+        """
         return _debug_boxes
 
     def get_player_orbit_data(self, keys):
+        """
+        Get orbit data for the player corresponding to *keys*
+        """
         data = {}
         for key in keys:
             data[key] = getattr(self.player._orbit, key)
         return data
 
+    def _scene_data(self, o):
+        """
+        Format scene data for a single object
+        """
+        if o._orbit:
+            orbit = {
+                "plot": o._orbit.plot if o._orbit else [],
+                "is_elliptical": o._orbit.is_elliptical,
+                "is_parabolic": o._orbit.is_parabolic,
+                "is_hyperbolic": o._orbit.is_hyperbolic,
+            }
+        else:
+            orbit = {}
+        return {
+            "name": o._name,
+            "position": o.get_position(),
+            "orbit": orbit,
+            "radius": o.radius,
+            "target": o.target.uuid if hasattr(o, "target") and o.target else None,
+        }
+
     def get_scene_data(self):
+        """
+        Get data for the current scene, by type (unordered)
+        """
         data = {}
         for k, v in self.scene.items():
             data[k] = {}
             for o in v:
-                if o._orbit:
-                    orbit = {
-                        "plot": o._orbit.plot if o._orbit else [],
-                        "is_elliptical": o._orbit.is_elliptical,
-                        "is_parabolic": o._orbit.is_parabolic,
-                        "is_hyperbolic": o._orbit.is_hyperbolic,
-                    }
-                else:
-                    orbit = {}
-                data[k][o.uuid] = {
-                    "name": o._name,
-                    "position": o.get_position(),
-                    "orbit": orbit,
-                    "radius": o.radius,
-                    "target": o.target.uuid if hasattr(o, "target") and o.target else None,
-                }
+                data[k][o.uuid] = self._scene_data(o)
+        return data
+
+    def scene_lookup(self, uuid):
+        """
+        Data for one object by uuid (return dict)
+        """
+        if uuid == "player":
+            return self._scene_data(self.player)
+        for _, l in self.scene.items():
+            for o in l:
+                if o.uuid == uuid:
+                    return self._scene_data(o)
+
+
+    def get_scene_objects(self):
+        """
+        Return only UUIDs in scene, by type (but in order)
+        """
+        data = {}
+        for k, v in self.scene.items():
+            data[k] = [o.uuid for o in v]
         return data
 
 
@@ -122,9 +156,14 @@ class GameState(object):
 
 
     def in_scene(self, arg):
-        for k, vals in self.scene.items():
-            if arg in vals:
+        if isinstance(arg, str):
+            arg = self.scene_lookup(arg)
+            if arg:
                 return True
+        else:
+            for k, vals in self.scene.items():
+                if arg in vals:
+                    return True
         return False
 
 
@@ -180,10 +219,16 @@ class GameState(object):
     def poll(self):
         return self._running
 
+    render_t = -1
+
+    def get_render_t(self):
+        return self.render_t
+
     def tick(self):
         time.sleep(1/(10*self.speed))
         global _debug_boxes
         game_dt = 1
+        render_t1 = time.time()
         self.current_time += game_dt
         objs = self.scene["ships"] + self.scene["debris"] + self.scene["bullets"]
         if not self.paused:
@@ -195,8 +240,8 @@ class GameState(object):
                     o1.game_tick(game_dt) # let it update internal state
                 p1 = o1.get_position()
                 p_norm = norm(p0)
-                # check for surface impact
-                if p_norm < o1._orbit.parent.radius:
+                # check for surface impact or escape
+                if p_norm < o1._orbit.parent.radius or p_norm > o1._orbit.parent.hill_radius:
                     self.remove_from_scene(o1)
                 else:
                     if o1.destructable:
@@ -216,7 +261,7 @@ class GameState(object):
                         # whose magnitude is close to ours, otherwise we can
                         # assume it is nowhere near us. this tolerance is an
                         # arbitrary value.
-                        if True: #abs(p_norm_ - p_norm) < self.collision_tolerance:
+                        if abs(p_norm_ - p_norm) < 10000:
                             # _debug_boxes.append(box_diagonals(p0, p1))
                             # _debug_boxes.append(box_diagonals(p0_, p1_))
                             #print(o1, o2, (tuple(p0), tuple(p1)), (tuple(p0_), tuple(p1_)))
@@ -229,6 +274,7 @@ class GameState(object):
                                 continue # dont add o1 to collision checks, it blew up (FIXME: breaks 3-way collisions)
                 except KeyError:
                     pass # end of list
+        self.render_t = time.time() - render_t1
 
 
 def box_diagonals(*pts):

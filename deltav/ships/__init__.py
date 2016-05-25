@@ -82,6 +82,7 @@ class BaseShip(Body):
                 break
             # FIXME: check and iterate if delta_v is too high
             #delta_v = abs(v1 - new_v)
+            print(self, "time", t)
 
             bullet = Bullet()
             bullet.orbit(self._orbit.parent, p1, new_v)
@@ -110,12 +111,8 @@ class BaseShip(Body):
             p1, v1 = self._orbit.get_position()
             delta_v = array([0,0,0])
             if impact_vector is not None:
-                delta_v += impact_vector * random.random()
-            delta_v += array([
-                random.randint(-100, 100),
-                random.randint(-100, 100),
-                random.randint(-100, 100),
-            ])
+                delta_v += impact_vector
+            delta_v *= random.random()
             debris = Debris()
             debris.orbit(self._orbit.parent, p1, delta_v + v1)
             objs.append(debris)
@@ -222,7 +219,7 @@ class Torpedo(Missile):
     def __init__(self, target):
         super(Torpedo, self).__init__("M1 torpedo")
         self.target = target
-        self.adjustments = 3
+        self.adjustments = 1
         self.time_to_impact = None
     
     def explode(self, *args, **kwargs):
@@ -259,6 +256,7 @@ class Torpedo(Missile):
                 t *= 1.1
                 continue
             break
+        print(self, "time", t)
         # FIXME: this is super imba
     def _destruct_enable(self, dt, *args, **kwargs):
         self.destructable = True

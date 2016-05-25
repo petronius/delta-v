@@ -22,6 +22,11 @@ from .view3d import View3D
 from .panels import tracking as TrackingPanel
 from .panels import nav as NavPanel
 
+#
+# FIXME: between this class and view3d, we should only get scene data once per
+# tick, to reduce IPC overhead
+#
+
 class GameView(deltav.ui.views.BaseView):
 
     player_options = {
@@ -67,7 +72,7 @@ class GameView(deltav.ui.views.BaseView):
         for panel in self.panels:
             panel.load(deltav.ui.game_window, self)
 
-        # self._focus = self.game_state.player
+        self._focus = "player"
 
 
     def load(self):
@@ -77,6 +82,8 @@ class GameView(deltav.ui.views.BaseView):
         pass
 
     def on_draw(self):
+        data = self.game_state.scene_lookup(self.get_focus())
+        self.view3d.center_on(data["position"])
         self.view3d.render(self)
         self.ui_batch.draw()
 
@@ -140,8 +147,9 @@ class GameView(deltav.ui.views.BaseView):
         # elif key == k["ACC_MINUS"]:
         #     self.game_state.player._orbit.accelerate(-50)
 
-        # elif key == k["CYCLE_FOCUS"]:
-        #     self.cycle_focus()
+        elif key == k["CYCLE_FOCUS"]:
+            self.cycle_focus()
+            self.reset_view()
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # FIXME: only pass if is on viewport
@@ -153,27 +161,47 @@ class GameView(deltav.ui.views.BaseView):
                 panel.update(self)
             except AssertionError:
                 pass # FIXME: "assert _is_loaded failing in pyglet gui code?
-        # coords = self.get_focus().get_position()
-        coords = (0,0,0)
-        self.view3d.center_on(coords)
+        # data = self.game_state.scene_lookup(self.get_focus())
+        # self.view3d.center_on(data["position"])
+        self.scene_data = None
+
+    def reset_view(self):
+        data = self.game_state.scene_lookup(self.get_focus())
+        self.view3d.center_on(data["position"], True)
 
 
-    # def cycle_focus(self):
-    #     objs = []
-    #     for k in sorted(self.game_state.scene):
-    #         objs += self.game_state.scene[k]
-    #     if self._focus in objs:
-    #         idx = objs.index(self._focus)
-    #     else:
-    #         idx = -1
-    #     try:
-    #         self._focus = objs[idx+1]
-    #     except IndexError:
-    #         self._focus=objs[0]
+    def cycle_focus(self):
+        objs = []
+        scene_data = self.get_scene_objects()
+        for k in sorted(scene_data.keys()):
+            objs += scene_data[k]
+        if self._focus in objs:
+            idx = objs.index(self._focus)
+        else:
+            idx = -1
+        try:
+            self._focus = objs[idx+1]
+        except IndexError:
+            self._focus = objs[0]
 
-    # def get_focus(self):
-    #     if self._focus is None:
-    #         self.cycle_focus()
-    #     elif not self.game_state.in_scene(self._focus):
-    #         self.cycle_focus()
-    #     return self._focus
+    def get_focus(self):
+        if self._focus is None:
+            self.cycle_focus()
+        elif not self.game_state.in_scene(self._focus):
+            self.cycle_focus()
+        return self._focus
+
+
+    scene_data = None
+    def get_scene_data(self):
+        if not self.scene_data:
+            self.scene_data = self.game_state.get_scene_data()
+        return self.scene_data
+
+    def get_scene_objects(self):
+        data = self.get_scene_data()
+        # fixme. needs same order as in game state
+        d = {}
+        for k in data:
+            d[k] = data[k].keys()
+        return d

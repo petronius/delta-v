@@ -11,15 +11,15 @@ from numpy import (
     floor,
     cos, arccos, cosh, arccosh,
     sin, sinh,
-    tan, arctan,
+    tan, arctan, arctan2,
     dot,
     log,
+    newaxis, squeeze, asarray,
 )
 from numpy.linalg import norm
-# not provided by numpy, for reasons which are opaque to me
-from mpmath import cot
 
-from deltav.physics.helpers import cached_property, _float, array
+from deltav.physics.helpers import cached_property, _float, array, cbrt, cot, \
+    kepler, Rz, Rx
 
 
 class Orbit(object):
@@ -302,10 +302,7 @@ class Orbit(object):
                 )
             ) / 2
             _w = arctan(tan(_s)**(_float("1")/_float("3")))
-
             chi = sqrt(self.semi_latus_rectum) * (2 * cot(2 * _w))
-            # mpmath and numpy don't always play nicely together
-            chi = _float(str(chi))
 
         elif self.is_hyperbolic: # hyperbolic
 
@@ -351,6 +348,10 @@ class Orbit(object):
             _chi = chi
             chi = chi_
 
+        if iterations == 0:
+            psi = chi**2 * self._alpha
+            c2, c3 = self._stumpff(psi)
+
         # At long last, we calculate the new position and velocity
 
         f = 1 - (chi**2 * c2 / self.mag_position)
@@ -393,7 +394,7 @@ class Orbit(object):
         A = tm * sqrt(mags*(1+cos_dv))
         if A == 0 and tm == 1:
             # Can't calculate. try the long way around
-            return lambert_deltas(p2, v2, time, -1)
+            return lambert_deltas(p1, v1, p2, v2, time, -1)
         elif A == 0:
             raise ValueError("Can't calculate orbit.")
 
@@ -411,7 +412,6 @@ class Orbit(object):
         y = None
         while abs(delta_t - time) > self.ACCURACY and iterations < 100:
             y = mag_p1 + mag_p2 + ((A*(psi_n*c3-1))/sqrt(c2))
-            print(psi_n, psi_up, psi_low, abs(delta_t - time))
             if A > 0 and y < 0:
                 raise ValueError("adjust psi_low so y > 0 (%s)" % y)
             chi = sqrt(y/c2)
@@ -430,7 +430,9 @@ class Orbit(object):
             psi_n = psi_next
             iterations += 1
 
-        if iterations > 99 or y is None:
+        if y is None:
+            y = mag_p1 + mag_p2 + ((A*(psi_n*c3-1))/sqrt(c2))
+        elif iterations > 99:
             raise ValueError("No firing solution at this timeframe!")
 
         f = 1 - y/mag_p1
@@ -445,7 +447,7 @@ class Orbit(object):
             new_orbit = Orbit(self.parent, self.satellite, p1, new_v1)
             rp = new_orbit.semi_major_axis * (1 - new_orbit.eccentricity)
             if rp < self.parent.radius and tm == 1:
-                return self.lambert_deltas(p2, v2, time, -1)
+                return self.lambert_deltas(p1, v1, p2, v2, time, -1)
             elif rp < self.parent.radius and tm == -1:
                 raise ValueError("No firing solution at this timeframe!")
 
@@ -498,3 +500,51 @@ class Orbit(object):
     @cached_property
     def is_elliptical(self):
         return self._alpha > 0 and not self.is_parabolic
+
+    @classmethod
+    def from_tle(cls, tle, parent, satellite, epoch = None):
+        """
+        Only works for kepler (elliptical) orbits.
+        """
+        # https://downloads.rene-schwarz.com/download/M001-Keplerian_Orbit_Elements_to_Cartesian_State_Vectors.pdf
+        # FIXME: make dates Julian
+        delta_t = 0
+        if epoch:
+            interval = tle["epoch"] - epoch
+            delta_t = interval.seconds + interval.days * 86400
+
+        grav_param = cls.G * parent.mass
+        semi_major_axis = cbrt((tle["mean_motion"]/(2*pi))**2*grav_param)
+
+        mean_anomaly = tle["mean_anomaly"] + delta_t * sqrt(grav_param/semi_major_axis**3)
+        mean_anomaly %= 2*pi
+
+        eccentricity = tle["eccentricity"]
+
+        eccentric_anomaly = kepler(mean_anomaly, eccentricity, cls.ACCURACY)
+
+        arg1 = sqrt(1 + eccentricity) * sin(eccentric_anomaly/2)
+        arg2 = sqrt(1 - eccentricity) * cos(eccentric_anomaly/2)
+        true_anomaly = 2 * arctan2(arg1, arg2)
+
+        r_distance = semi_major_axis * (1 - eccentricity * cos(eccentric_anomaly))
+
+        pos_orbital = r_distance * array([
+            cos(true_anomaly),
+            sin(true_anomaly),
+            0,
+        ])
+
+        vel_orbital = sqrt(grav_param*semi_major_axis)/r_distance * array([
+            -sin(eccentric_anomaly),
+            sqrt(1 - eccentricity**2) * cos(eccentric_anomaly),
+            0,
+        ])
+
+        O = tle["long_of_ascending_node"]
+        i = tle["inclination"]
+        w = tle["argument_of_periapsis"]
+
+        v_position = (Rz(-O) * Rx(-i) * Rz(-w)).dot(pos_orbital[:, newaxis])
+        v_velocity = (Rz(-O) * Rx(-i) * Rz(-w)).dot(vel_orbital[:, newaxis])
+        return cls(parent, satellite, squeeze(asarray(v_position)), squeeze(asarray(v_velocity)))

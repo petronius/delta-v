@@ -10,6 +10,7 @@ TODO:
 """
 import pyglet
 import numpy
+import time
 
 import deltav.ui
 
@@ -31,7 +32,7 @@ class View3D:
 
     SYMBOL_COLOR = (0, 255, 0)
     LABEL_COLOR = (255, 255, 255, 255)
-    BODY_COLOR = (255, 0, 0)
+    BODY_COLOR = (.5, 0, 0)
     ORBIT_COLOR = (0, 0, 255)
 
     FONT_FACE="Droid Sans Mono"
@@ -50,7 +51,7 @@ class View3D:
         self.ry = 0
         self.rz = 0
 
-        self.near = 0.1
+        self.near = 2
         self.far = 10000000
         self.fov = 60
 
@@ -61,9 +62,16 @@ class View3D:
 
         self.center_on(center_on)
 
-    def center_on(self, coords):
+    def center_on(self, coords, reset = False):
         #self.center = numpy.array([0,0,0])
         #return
+        if reset:
+            self.rx = 0
+            self.ry = 0
+            self.rz = 0
+            self.x = 0.0
+            self.y = 0.0
+            self.z = 312
         x, y, z = map(lambda x: x*self.SCALE, coords)
         self.center = numpy.array([x, y, z])
 
@@ -80,8 +88,11 @@ class View3D:
         glRotatef(self.rz, 0, 0, 1)
 
     def render(self, game_view):
-        scene = game_view.game_state.get_scene_data()
+        scene = game_view.get_scene_data()
+        sim_time = game_view.game_state.get_render_t()
+        self.write("simulation time (recent): "+str(int(sim_time * 1000))+" ms", (10,self.h - 10, -1))
         _debug_boxes = game_view.game_state.get_debug_boxes()
+        draw_time1 = time.time()
         self.apply()
 
         for uuid, ship in scene["ships"].items(): # passing in the night
@@ -142,6 +153,8 @@ class View3D:
             for box in _debug_boxes:
                 self.draw_cube(*box)
 
+        self.write("draw time: "+str(int((time.time() - draw_time1)*1000))+" ms", (10,self.h - 30, -1))
+
         # Reset when we're done, for other rendering actions that need the
         # default pyglet behaviour
         width, height = deltav.ui.game_window.width, deltav.ui.game_window.height
@@ -186,7 +199,7 @@ class View3D:
         """
         Convert physics coordinates to render coordinates.
         """
-        result = self.center - tuple(map(lambda x: x*self.SCALE, coords))
+        result = tuple(map(lambda x: x*self.SCALE, coords)) - self.center
         return tuple(result)
 
     def _scene_to_screen(self, coords, snap_to_edge=False):
@@ -205,8 +218,8 @@ class View3D:
         x -= self.bx
         y -= self.by
 
-        if snap_to_edge == True:
-            x, y, z = self._snap_to_edge(x, y, z)
+        # if snap_to_edge == True:
+        #     x, y, z = self._snap_to_edge(x, y, z)
 
         return int(x), int(y), int(z)
 
@@ -266,6 +279,20 @@ class View3D:
     # Drawing functions.
     #
 
+    def write(self, s, screen_coors):
+        x, y, _ = screen_coors
+        self._flat()
+
+        s = '<font face="%s" size="1" color="#FFFFFF">%s</font>' % (self.FONT_FACE, s)
+
+        pyglet.text.HTMLLabel(s,
+            x = x,
+            y = y,
+            anchor_x = "left",
+            anchor_y = "top",
+        ).draw()
+
+
     def text(self, s, coords):
         """
         Add text in the scene
@@ -298,15 +325,17 @@ class View3D:
 
         x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
 
-        a = (x, y+offset, z)
-        b = (x+offset, y, z)
-        c = (x-offset, y, z)
+        if z < 1:
 
-        self._flat()
-        pyglet.graphics.draw(3, pyglet.gl.GL_TRIANGLES,
-            ('v3f', a + b + c),
-            ('c3B', color*3),
-        )
+            a = (x, y+offset, z)
+            b = (x+offset, y, z)
+            c = (x-offset, y, z)
+
+            self._flat()
+            pyglet.graphics.draw(3, pyglet.gl.GL_TRIANGLES,
+                ('v3f', a + b + c),
+                ('c3B', color*3),
+            )
 
 
     def draw_diamond(self, coords, color, offset=5):
@@ -316,16 +345,18 @@ class View3D:
 
         x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
 
-        a = (x, y+offset, z)
-        b = (x+offset, y, z)
-        c = (x, y-offset, z)
-        d = (x-offset, y, z)
+        
+        if z < 1:
+            a = (x, y+offset, z)
+            b = (x+offset, y, z)
+            c = (x, y-offset, z)
+            d = (x-offset, y, z)
 
-        self._flat()
-        pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
-            ('v3f', a + b + c + d),
-            ('c3B', color*4),
-        )
+            self._flat()
+            pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
+                ('v3f', a + b + c + d),
+                ('c3B', color*4),
+            )
 
 
     def draw_square(self, coords, color, offset=5):
@@ -335,16 +366,17 @@ class View3D:
 
         x, y, z = self._scene_to_screen(coords, snap_to_edge = True)
 
-        a = (x-offset, y+offset, z)
-        b = (x+offset, y+offset, z)
-        c = (x+offset, y-offset, z)
-        d = (x-offset, y-offset, z)
+        if z < 1:
+            a = (x-offset, y+offset, z)
+            b = (x+offset, y+offset, z)
+            c = (x+offset, y-offset, z)
+            d = (x-offset, y-offset, z)
 
-        self._flat()
-        pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
-            ('v3f', a + b + c +d),
-            ('c3B', color*4),
-        )
+            self._flat()
+            pyglet.graphics.draw(4, pyglet.gl.GL_QUADS,
+                ('v3f', a + b + c +d),
+                ('c3B', color*4),
+            )
 
     def draw_cube(self, p1, p2):
         p1 = self._world_to_scene(p1)

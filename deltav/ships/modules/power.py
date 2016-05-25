@@ -69,7 +69,12 @@ class AMCore(BaseModule):
     UNIT COUNT:   1
     POWER OUTPUT: 6432 MWe
 
-    
+    An incredibly powerful power plant, still highly experimental. Failure modes
+    tend towards the catastrophic, and it is not rated for interplanetary travel
+    or exploration operations.
+
+    It also has not been tested in high-radiation environments, and so may not
+    be reliable outside of environments protectd by a strong magnetic field.
     """
 
     mass = 2500

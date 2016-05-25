@@ -1,4 +1,4 @@
-from physics.body import Body
+from deltav.physics.body import Body
 
 class BaseModule(Body):
 
