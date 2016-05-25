@@ -16,8 +16,11 @@ from numpy import (
     dot,
     log,
     newaxis, squeeze, asarray,
+    seterr,
 )
 from numpy.linalg import norm
+
+seterr(all="raise")
 
 from deltav.physics.helpers import cached_property, _float, array, cbrt, cot, \
     kepler, Rz, Rx
@@ -33,7 +36,8 @@ class Orbit(object):
     where above a planet we are putting our ships, and then we can go on to
     solve for the important orbital information later.
 
-    All calculations should assume radians, and return radians.
+    All calculations should assume radians, meters, and seconds, and return 
+    the same.
     """
 
     # The gravitational constant
@@ -530,11 +534,28 @@ class Orbit(object):
         FIXME: Should really do this in OpenGL. use shader? https://www.opengl.org/discussion_boards/showthread.php/173136-drawing-hyperbola-in-openGL
         """
         points = []
-        start, limit, step = 0, 2*pi, 2*pi/100
-        while start < limit:
-            position, _ = self.position_from_true_anomaly(start)
-            points.append(position)
-            start += step
+        n = 36
+        if self.is_elliptical:
+            start, limit, step = 0, 2*pi, 2*pi/n
+            while start < limit:
+                position, _ = self.position_from_true_anomaly(start)
+                start += step
+                points.append(position)
+        else:
+            max_ = 5.0
+            start, limit, step = max_, 0, -max_/(n/2)
+            while start > limit:
+                dt = int(10**(start))
+                position, _ = self.get_position(-dt)
+                points.append(position)
+                start += step
+            points.append(self.v_position) # dt == 0
+            start, limit, step = 0, max_, max_/(n/2)
+            while start < limit:
+                dt = int(10**(start))
+                position, _ = self.get_position(dt)
+                points.append(position)
+                start += step
         return points
 
 

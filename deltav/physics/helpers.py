@@ -4,7 +4,6 @@ from functools import partial
 from numpy import longdouble, seterr, sqrt, sin, cos, tan, matrix
 from numpy import array as _array
 
-
 seterr(all="raise")
 
 # set the float type for all physics calculations
