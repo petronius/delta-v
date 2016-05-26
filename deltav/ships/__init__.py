@@ -104,7 +104,7 @@ class BaseShip(Body):
                 break
             # FIXME: check and iterate if delta_v is too high
             #delta_v = abs(v1 - new_v)
-            print(self, "time", t)
+            # print(self, "time", t)
 
             bullet = Bullet()
             bullet.orbit(self._orbit.parent, p1, new_v)

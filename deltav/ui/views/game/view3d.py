@@ -71,6 +71,9 @@ class View3D:
         self.center_on(center_on)
         self.render_clock = DebugClock()
 
+        self.labels = {}
+        self.v3d_batch = pyglet.graphics.Batch()
+
 
     def center_on(self, coords, reset = False):
         if reset:
@@ -95,17 +98,17 @@ class View3D:
 
     def render(self, game_view):
 
-        self.v3d_batch = pyglet.graphics.Batch() # FIXME: don't make new batch and new labels on each render!
-
         scene = game_view.get_scene_data()
         # _debug_boxes = game_view.game_state.get_debug_boxes()
         tui_times = map(lambda x: str(int(x*1000)), (game_view.ui_clock.latest, game_view.ui_clock.avg, game_view.ui_clock.max))
         sim_times = map(lambda x: str(int(x*1000)), scene["timer"])
         ren_times = map(lambda x: str(int(x*1000)), (self.render_clock.latest, self.render_clock.avg, self.render_clock.max))
 
-        self.text("sim time (recent): "+"/".join(sim_times)+" ms", (10,self.h - 10, -1), batch=self.v3d_batch)
-        self.text("3d render time:    "+"/".join(ren_times)+" ms", (10,self.h - 30, -1), batch=self.v3d_batch)
-        self.text("total draw time:   "+"/".join(tui_times)+" ms", (10,self.h - 50, -1), batch=self.v3d_batch)
+        self.text("sim time (recent): "+"/".join(sim_times)+" ms", (10,self.h - 10, -1))
+        self.text("3d render time:    "+"/".join(ren_times)+" ms", (10,self.h - 30, -1))
+        self.text("total draw time:   "+"/".join(tui_times)+" ms", (10,self.h - 50, -1))
+
+        labels_on = game_view.get_option("tracking", "labels")
 
         try: 
             self.render_clock.start_timer()
@@ -131,8 +134,8 @@ class View3D:
 
                         coords = self._scene_to_screen(coords)
 
-                        if game_view.get_option("tracking", "labels"):
-                            self.text(obj["name"], coords, batch=self.v3d_batch)
+                        if labels_on:
+                            self.text(obj["name"], coords, batch=self.v3d_batch, uuid=uuid)
 
                         if game_view.get_option("tracking", "symbols"):
                             sym, color = self.SYMBOLS[k]
@@ -145,7 +148,22 @@ class View3D:
             # if _debug_boxes:
             #     for box in _debug_boxes:
             #         self.draw_cube(*box)
-            
+
+            # clean up old labels
+            if labels_on:
+                objs = []
+                for k, l in scene["objects"].items():
+                    objs += l.keys()
+                for uuid, label in list(self.labels.items()):
+                    if uuid not in objs:
+                        label.delete()
+                        del self.labels[uuid]
+            else:
+                for uuid, label in list(self.labels.items()):
+                    label.delete()
+                    del self.labels[uuid]
+
+            # draw labels
             self._flat()
             self.v3d_batch.draw()
 
@@ -246,7 +264,20 @@ class View3D:
     # Drawing functions.
     #
 
-    def text(self, s, coords, batch):
+    def _mk_label(self, s, x, y, batch=None):
+        s = '<font face="%s" size="1" color="#FFFFFF">%s</font>' % (self.FONT_FACE, s)
+        label = pyglet.text.HTMLLabel(s,
+            x = x,
+            y = y,
+            anchor_x = "left",
+            anchor_y = "top",
+            batch = batch,
+        )
+        if not batch:
+            label.draw()
+        return label
+
+    def text(self, s, coords, batch=None, uuid=None):
         """
         Add text in the scene
 
@@ -256,18 +287,20 @@ class View3D:
         """
         x, y, z = coords
         if z < 1:
+            if uuid:
+                if uuid in self.labels:
+                    label = self.labels[uuid]
+                    label.x, label.y = x, y
+                else:
+                    label = self._mk_label(s, x, y, batch)
+                    self.labels[uuid] = label
+            else:
+                label = self._mk_label(s, x, y, batch)
+        else:
+            if uuid in self.labels.keys():
+                self.labels[uuid].delete()
+                del self.labels[uuid]
 
-            self._flat()
-
-            s = '<font face="%s" size="1" color="#FFFFFF">%s</font>' % (self.FONT_FACE, s)
-
-            pyglet.text.HTMLLabel(s,
-                x = x + 10,
-                y = y,
-                anchor_x = "left",
-                anchor_y = "top",
-                batch = batch,
-            )
 
 
     def _symbol_points(self, type_, coords, offset):
