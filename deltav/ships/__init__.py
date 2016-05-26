@@ -1,7 +1,9 @@
 
-import pyglet
 
 import random
+
+import numpy
+import pyglet
 
 from numpy.linalg import norm
 
@@ -10,7 +12,7 @@ from .modules.power import *
 from .modules.weapons import *
 
 from deltav.physics.body import Body
-from deltav.physics.helpers import array
+from deltav.physics.helpers import array, Rx, Ry, Rz
 
 #
 # Nothing to see here yet
@@ -46,6 +48,25 @@ class BaseShip(Body):
         self.destructable = True
 
         self._orbit = None
+
+        self.pitch = 0
+        self.yaw = 0
+        self.roll = 0
+
+
+    def accelerate(self, dv):
+        # accelerate along the current direction
+        vec = array([0, dv, 0])
+        # FIXME: I think roll is pointless?
+        vec = (Rx(self.pitch)*Ry(self.yaw)).dot(vec[:, numpy.newaxis])
+        vec = numpy.squeeze(numpy.asarray(vec))
+        self._orbit.accelerate(vec)
+
+
+    def turn(self, x = 0, y = 0, z = 0):
+        self.pitch += x
+        self.yaw += y
+        self.roll += z
     
     
     def cycle_target(self, target_list):

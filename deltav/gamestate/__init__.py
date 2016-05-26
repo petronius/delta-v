@@ -73,6 +73,13 @@ class GameState(object):
 
         self.current_time = 0.0
 
+    def player_turn(self, x = 0, y = 0, z = 0):
+        self.player.turn(x, y, z)
+
+
+    def player_accelerate(self, d):
+        self.player.accelerate(d)
+
     def get_debug_boxes(self):
         """
         Retrieved stored collision boxes for render
@@ -118,6 +125,8 @@ class GameState(object):
             data[k] = {}
             for o in v:
                 data[k][o.uuid] = self._scene_data(o)
+        data["player"] = self._scene_data(self.player) # FIXME: in scene data twice
+        data["player"]["attitude"] = (self.player.pitch, self.player.yaw, self.player.roll)
         return data
 
     def scene_lookup(self, uuid):

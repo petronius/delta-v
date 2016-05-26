@@ -29,10 +29,15 @@ Registry: UNS-<C>
 * Al-Hashimiyun
 * Gamal Abdel Nasser Husseni
 
+* Shaka kaSenzangakhona
+
 # Others
 
 * Fury of Creation
 * The Gospel According to Mark
+* Darlin Cora
+* East Virginia
+* Arbacoochie
 
 # Some factions
 

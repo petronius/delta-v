@@ -73,15 +73,15 @@ def Rx(theta):
         [0, -sin(theta), cos(theta) ],
     ], dtype=_float)
 
-# def Ry(theta):
-#     """
-#     Return a rotation matrix for the Y axis and angle *theta*
-#     """
-#     return matrix([
-#         [cos(theta),  0, sin(theta)],
-#         [0,           1, 0         ],
-#         [-sin(theta), 0, cos(theta)],
-#     ], dtype=_float)
+def Ry(theta):
+    """
+    Return a rotation matrix for the Y axis and angle *theta*
+    """
+    return matrix([
+        [cos(theta),  0, sin(theta)],
+        [0,           1, 0         ],
+        [-sin(theta), 0, cos(theta)],
+    ], dtype=_float)
     
 def Rz(theta):
     """

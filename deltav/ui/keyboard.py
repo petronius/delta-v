@@ -22,8 +22,8 @@ bindings = {
     "SET_SPEED_8": key._8,
     "SET_SPEED_9": key._9,
 
-    "SPEED_PLUS": key.F,
-    "SPEED_MINUS": key.S,
+    "SPEED_PLUS": key.NUM_ADD,
+    "SPEED_MINUS": key.NUM_SUBTRACT,
     "SPEED_PAUSE": key.SPACE,
 
     "CYCLE_FOCUS": key.C,
@@ -34,12 +34,18 @@ bindings = {
     "SHOW_LABELS": key.F1,
 
     "CYCLE_TARGET": key.T,
-    "SHOOT_AT_TARGET_A": key.Q,
-    "SHOOT_AT_TARGET_T": key.W,
+    "SHOOT_AT_TARGET_A": key.Y,
+    "SHOOT_AT_TARGET_T": key.X,
 
-    "ACC_PLUS": key.NUM_ADD,
-    "ACC_MINUS": key.NUM_SUBTRACT,
-    
+    "ACC_PLUS": key.LSHIFT,
+    "ACC_MINUS": key.LCTRL,
+
+    "PITCH_DOWN": key.W,
+    "PITCH_UP": key.S,
+    "YAW_LEFT": key.Q,
+    "YAW_RIGHT": key.E,
+    "ROLL_LEFT": key.A,
+    "ROLL_RIGHT": key.D,
 }
 
 def check(binding):

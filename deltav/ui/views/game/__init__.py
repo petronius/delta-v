@@ -142,10 +142,25 @@ class GameView(deltav.ui.views.BaseView):
             self.game_state.stop()
             deltav.app.game_app.user_quit()
 
-        # elif key == k["ACC_PLUS"]:
-        #     self.game_state.player._orbit.accelerate(50)
-        # elif key == k["ACC_MINUS"]:
-        #     self.game_state.player._orbit.accelerate(-50)
+        elif key == k["ACC_PLUS"]:
+            self.game_state.player_accelerate(50)
+        elif key == k["ACC_MINUS"]:
+            self.game_state.player_accelerate(-50)
+
+        elif key == k["PITCH_DOWN"]:
+            self.game_state.player_turn(x=-1)
+        elif key == k["PITCH_UP"]:
+            self.game_state.player_turn(x=1)
+
+        elif key == k["YAW_LEFT"]:
+            self.game_state.player_turn(y=-1)
+        elif key == k["YAW_RIGHT"]:
+            self.game_state.player_turn(y=1)
+        elif key == k["ROLL_LEFT"]:
+            self.game_state.player_turn(z=-1)
+        elif key == k["ROLL_RIGHT"]:
+            self.game_state.player_turn(z=1)
+
 
         elif key == k["CYCLE_FOCUS"]:
             self.cycle_focus()

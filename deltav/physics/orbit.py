@@ -67,7 +67,7 @@ class Orbit(object):
         self.t_delta = _float("0")
 
 
-    def accelerate(self, x):
+    def accelerate(self, vec):
         """
         x = amount. positive in current direction of travel, negative in reverse
 
@@ -81,10 +81,8 @@ class Orbit(object):
            zero epoch.
         """
         current_v_position, current_v_velocity = self.get_position()
-        v_unit = current_v_velocity / norm(current_v_velocity)
-        v_accel = v_unit * x
         # set velocity
-        self.v_velocity = current_v_velocity + v_accel
+        self.v_velocity = current_v_velocity + vec
         # set new position
         self.v_position = current_v_position
         # reset epoch
@@ -92,6 +90,7 @@ class Orbit(object):
         # clear cache
         self._property_cache = {}
         self._positions_cache = {}
+
 
 
     def set_veloctiy(self, v_velocity):
@@ -127,7 +126,7 @@ class Orbit(object):
         Node vector for the ascending node. (n')
         """
         n = cross(self.K, self.v_angular_momentum)
-        if norm(n) < self.ACCURACY:
+        if norm(n) < self.ACCURACY: # FIXME: this doesn't seem like it should be necessary
             return array([1, 0, 0])
         return n
 
@@ -535,6 +534,7 @@ class Orbit(object):
         """
         points = []
         n = 36
+        print(self.position_from_true_anomaly(0))
         if self.is_elliptical:
             start, limit, step = 0, 2*pi, 2*pi/n
             while start < limit:
@@ -655,9 +655,13 @@ class Orbit(object):
         Get a position based on a value for the true anomaly
         """
 
-        eccentric_anomaly = arccos((self.eccentricity+cos(true_anomaly))/(1 + self.eccentricity*cos(true_anomaly)))
+        eccentric_anomaly = arccos(
+            (self.eccentricity+cos(true_anomaly))
+            /
+            (1 + self.eccentricity*cos(true_anomaly))
+        )
 
-        return self._reverse(
+        p, v = self._reverse(
             true_anomaly,
             eccentric_anomaly, 
             self.eccentricity, 
@@ -667,3 +671,5 @@ class Orbit(object):
             self.inclination, 
             self.argument_of_periapsis
         )
+
+        return p, v

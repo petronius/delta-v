@@ -12,6 +12,8 @@ import pyglet
 import numpy
 import time
 
+from numpy.linalg import norm
+
 import deltav.ui
 
 import OpenGL
@@ -47,9 +49,9 @@ class View3D:
 
         self.mode = self.NOFLAT
         
-        self.rx = 0
+        self.rx = -45
         self.ry = 0
-        self.rz = 0
+        self.rz = -45
 
         self.near = 2
         self.far = 10000000
@@ -66,9 +68,9 @@ class View3D:
         #self.center = numpy.array([0,0,0])
         #return
         if reset:
-            self.rx = 0
+            self.rx = 45
             self.ry = 0
-            self.rz = 0
+            self.rz = 45
             self.x = 0.0
             self.y = 0.0
             self.z = 312
@@ -94,6 +96,7 @@ class View3D:
         _debug_boxes = game_view.game_state.get_debug_boxes()
         draw_time1 = time.time()
         self.apply()
+
 
         for uuid, ship in scene["ships"].items(): # passing in the night
 
@@ -154,6 +157,9 @@ class View3D:
                 self.draw_cube(*box)
 
         self.write("draw time: "+str(int((time.time() - draw_time1)*1000))+" ms", (10,self.h - 30, -1))
+
+
+        self.draw_adi(*scene["player"]["attitude"])
 
         # Reset when we're done, for other rendering actions that need the
         # default pyglet behaviour
@@ -266,7 +272,7 @@ class View3D:
         elif button == 2:
             self.z += dy*10
         elif button == 4:
-            self.ry += dx/4.
+            self.rz += dx/4.
             self.rx -= dy/4.
 
     def scroll(self, delta):
@@ -458,7 +464,98 @@ class View3D:
         gluQuadricDrawStyle(q, GLU_LINE)
         gluQuadricTexture(q, GL_TRUE)
         glTranslatef(*coords)
-        glRotatef(90, 1, 0, 0)
         gluSphere(q, radius, slices, stacks)
 
         gluDeleteQuadric(q)
+
+    def draw_adi(self, pitch, yaw, roll):
+
+        # custom viewport
+
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glViewport(int(self.w/2), 0, 200, 200)
+        gluPerspective(90, 1, self.near, self.far)
+        glMatrixMode(GL_MODELVIEW)
+
+        glEnable(GL_DEPTH_TEST)
+
+        # custom camera
+
+        glLoadIdentity()
+        glTranslatef(0, 0, -20)
+        # camera rot
+        glRotatef(self.rx, 1, 0, 0)
+        glRotatef(self.ry, 0, 1, 0)
+        glRotatef(self.rz, 0, 0, 1)
+
+        # guides
+        glColor3f(1, 0, 0)
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(0, 0, 0)        
+        glVertex3f(100, 0, 0)
+        glEnd()
+        glColor3f(0, 1, 0)
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(0, 0, 0)        
+        glVertex3f(0, 100, 0)
+        glEnd()
+        glColor3f(0, 0, 1)
+        glBegin(GL_LINE_STRIP)
+        glVertex3f(0, 0, 0)        
+        glVertex3f(0, 0, 100)
+        glEnd()
+
+
+        rotations = (
+            (90, 1, 0, 0),
+            (pitch, 1, 0, 0),
+            (yaw, 0, 1, 0),
+            (roll, 0, 0, 1),
+        )
+
+        # self._perspective()
+
+        stacks = slices = 10
+        r = 10
+
+        c = (
+            self.x + 10,
+            self.y - 10,
+            self.z -20
+        )
+
+        glColor3f(0, 1.0, 1.0)
+
+
+        glEnable(GL_CLIP_PLANE0)
+
+        for rs in rotations:
+            glRotatef(*rs)
+
+        q = gluNewQuadric()
+        gluQuadricNormals(q, GLU_NONE)
+        gluQuadricDrawStyle(q, GLU_LINE)
+        gluQuadricTexture(q, GL_TRUE)
+
+        glClipPlane(GL_CLIP_PLANE0, (0, 1, 0, 0))
+        gluSphere(q, r, slices, stacks)
+
+        glColor3f(1.0, 0, 1.0)
+        glClipPlane(GL_CLIP_PLANE0, (0, -1, 0, 0))
+
+        q1 = gluNewQuadric()
+        gluQuadricNormals(q, GLU_NONE)
+        gluQuadricDrawStyle(q, GLU_LINE)
+        gluQuadricTexture(q, GL_TRUE)
+        
+        gluSphere(q, r, slices, stacks)
+
+        gluDeleteQuadric(q1)
+        gluDeleteQuadric(q)
+
+
+
+        glDisable(GL_CLIP_PLANE0)
+
+
