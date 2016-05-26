@@ -145,7 +145,8 @@ class View3D:
             # if _debug_boxes:
             #     for box in _debug_boxes:
             #         self.draw_cube(*box)
-
+            
+            self._flat()
             self.v3d_batch.draw()
 
             self.draw_adi(*scene["player"]["attitude"])
@@ -455,9 +456,9 @@ class View3D:
 
         rotations = (
             (90, 1, 0, 0),
+            (roll, 0, 0, 1),
             (pitch, 1, 0, 0),
             (yaw, 0, 1, 0),
-            (roll, 0, 0, 1),
         )
         for rs in rotations:
             glRotatef(*rs)

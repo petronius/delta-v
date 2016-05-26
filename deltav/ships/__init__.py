@@ -57,8 +57,9 @@ class BaseShip(Body):
     def accelerate(self, dv):
         # accelerate along the current direction
         vec = array([0, dv, 0])
-        # FIXME: I think roll is pointless?
-        vec = (Rx(self.pitch)*Ry(self.yaw)).dot(vec[:, numpy.newaxis])
+        # FIXME: Should automagically match rendering of ADI in view, to ensure
+        # consistency?
+        vec = (Rz(self.roll)*Rx(self.pitch)*Ry(self.yaw)).dot(vec[:, numpy.newaxis])
         vec = numpy.squeeze(numpy.asarray(vec))
         self._orbit.accelerate(vec)
 
