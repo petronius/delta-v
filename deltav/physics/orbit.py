@@ -534,7 +534,6 @@ class Orbit(object):
         """
         points = []
         n = 36
-        print(self.position_from_true_anomaly(0))
         if self.is_elliptical:
             start, limit, step = 0, 2*pi, 2*pi/n
             while start < limit:

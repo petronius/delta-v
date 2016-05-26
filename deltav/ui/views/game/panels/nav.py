@@ -40,10 +40,11 @@ elements = {
   "eccentricity": (Label(""), None),
   "semi_major_axis": (Label(""), "m"),
   "inclination": (Label(""), "r"),
-  # "long_of_asc_node": (Label(""), "r"),
-  # "argument_of_periapsis": (Label(""), "r"),
+  "long_of_ascending_node": (Label(""), "r"),
+  "argument_of_periapsis": (Label(""), "r"),
   # "mean_anomaly": (Label(""), "r"),
   # "eccentric_anomaly": (Label(""), "r"),
+  "true_anomaly": (Label(""), "r"),
   "semi_latus_rectum": (Label(""), "m"),
   "period": (Label(""), "s"),
   # "time_from_periapsis": (Label(""), "s"),
@@ -62,14 +63,14 @@ orbital_statuses = [
     Label("i"),
     elements["inclination"][0],
   ],
-  # [
-  #   Label("Ω"),
-  #   elements["long_of_asc_node"][0],
-  # ],
-  # [
-  #   Label("ω"),
-  #   elements["argument_of_periapsis"][0],
-  # ],
+  [
+    Label("Ω"),
+    elements["long_of_ascending_node"][0],
+  ],
+  [
+    Label("ω"),
+    elements["argument_of_periapsis"][0],
+  ],
   # [
   #   Label("M"),
   #   elements["mean_anomaly"][0],
@@ -78,10 +79,14 @@ orbital_statuses = [
   #   Label("E/D/F"),
   #   elements["eccentric_anomaly"][0],
   # ],
-  # [
-  #   Label("p"),
-  #   elements["semi_latus_rectum"][0],
-  # ],
+  [
+    Label("v"),
+    elements["true_anomaly"][0],
+  ],
+  [
+    Label("p"),
+    elements["semi_latus_rectum"][0],
+  ],
   [
     Label("Period"),
     elements["period"][0],
@@ -94,12 +99,10 @@ orbital_statuses = [
 ]
 
 manager = None
-orbit = None
 
 def load(window, game_view):
 
-  global manager, orbit
-  orbit = game_view.game_state.get_player_orbit_data(elements.keys())
+  orbit = game_view.get_scene_data()["player"]["orbit"]
 
   manager = Manager(
     VerticalContainer([
@@ -125,7 +128,7 @@ def load(window, game_view):
 def _format_pretty(n, u):
   if n == numpy.Inf:
     return "∞", ""
-  elif n is None:
+  elif n is None or numpy.isnan(n):
     return "-", ""
   elif u == "m":
 
@@ -166,6 +169,7 @@ def _format_pretty(n, u):
 
 
 def update(game_view):
+  orbit = game_view.get_scene_data()["player"]["orbit"]
   for k, kv in elements.items():
     el, units = kv
     v = orbit[k]

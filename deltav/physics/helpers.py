@@ -16,7 +16,7 @@ def cbrt(x):
     return x**(1/_float("3.0"))
 
 def cot(x):
-    return 1/tan(x)
+    return 1/tan(x) # fixme: arctan?
 
 def cached_property(f):
     """

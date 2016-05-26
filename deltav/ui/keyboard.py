@@ -54,6 +54,10 @@ def check(binding):
     *binding* should be one of the keys in :data:`bindings`.
     """
     possible_keys = bindings.get(binding)
+    try:
+        iter(possible_keys)
+    except TypeError:
+        possible_keys = [possible_keys,]
     for keyset in possible_keys:
         try:
             sym, mods = keyset
@@ -66,4 +70,5 @@ def check(binding):
         for m in filter(None, mods.split('|')):
             allk.append(getattr(key, m))
         pressedk = filter(lambda x: deltav.ui.game_window.keyboard[x], allk)
+        pressedk = list(pressedk)
         return pressedk == allk

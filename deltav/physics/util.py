@@ -57,15 +57,3 @@ def parse_tle(lines):
         "mean_motion":                          86400 / _float(lines[2][52:62]),
         "revolution_number_at_epoch":           _float(lines[2][63:67]),
     }
-
-
-if __name__ == "__main__":
-
-    from deltav.physics.orbit import Orbit
-    from deltav.physics.body import Body
-    from deltav.ships import MobShip
-    earth = Body(5.972e24, 6371000)
-    for tle in load_tle_file("stations.txt"):
-        o = Orbit.from_tle(tle, earth, MobShip(tle["name"]))
-        print(o, o.v_position, o.v_velocity)
-

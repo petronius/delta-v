@@ -20,10 +20,13 @@ from deltav.physics.body import Body
 from deltav.physics.helpers import distance
 from deltav.physics.util import load_tle_file
 from deltav.physics.orbit import Orbit
+from deltav.gamestate.util import DebugClock
 
-_debug_boxes = []
 
 class GameState(object):
+
+    GAME_TIME_TICK = 1
+    # _debug_boxes = []
 
     def __init__(self):
 
@@ -73,6 +76,21 @@ class GameState(object):
 
         self.current_time = 0.0
 
+        self.simulation_clock = DebugClock()
+
+    # IPC efficiency optimisation
+    def exec_cmdlist(self, cmds):
+        for cmd in cmds:
+            fname = cmd[0]
+            args = []
+            kwargs = {}
+            for a in cmd[1:]:
+                if isinstance(a, dict):
+                    kwargs.update(a)
+                else:
+                    args.append(a)
+            getattr(self, fname)(*args, **kwargs)
+
     def player_turn(self, x = 0, y = 0, z = 0):
         self.player.turn(x, y, z)
 
@@ -80,20 +98,11 @@ class GameState(object):
     def player_accelerate(self, d):
         self.player.accelerate(d)
 
-    def get_debug_boxes(self):
-        """
-        Retrieved stored collision boxes for render
-        """
-        return _debug_boxes
-
-    def get_player_orbit_data(self, keys):
-        """
-        Get orbit data for the player corresponding to *keys*
-        """
-        data = {}
-        for key in keys:
-            data[key] = getattr(self.player._orbit, key)
-        return data
+    # def get_debug_boxes(self):
+    #     """
+    #     Retrieved stored collision boxes for render
+    #     """
+    #     return self._debug_boxes
 
     def _scene_data(self, o):
         """
@@ -105,6 +114,19 @@ class GameState(object):
                 "is_elliptical": o._orbit.is_elliptical,
                 "is_parabolic": o._orbit.is_parabolic,
                 "is_hyperbolic": o._orbit.is_hyperbolic,
+
+
+                "eccentricity": o._orbit.eccentricity,
+                "semi_major_axis": o._orbit.semi_major_axis,
+                "inclination": o._orbit.inclination,
+                "long_of_ascending_node": o._orbit.long_of_ascending_node,
+                "argument_of_periapsis": o._orbit.argument_of_periapsis,
+                # "mean_anomaly": o._orbit.mean_anomaly,
+                # "eccentric_anomaly": o._orbit.eccentric_anomaly,
+                "true_anomaly": o._orbit.true_anomaly,
+                "semi_latus_rectum": o._orbit.semi_latus_rectum,
+                "period": o._orbit.period,
+                # "time_from_periapsis": o._orbit.time_from_periapsis,
             }
         else:
             orbit = {}
@@ -120,13 +142,16 @@ class GameState(object):
         """
         Get data for the current scene, by type (unordered)
         """
-        data = {}
+        data = {
+            "objects": {}
+        }
         for k, v in self.scene.items():
-            data[k] = {}
+            data["objects"][k] = {}
             for o in v:
-                data[k][o.uuid] = self._scene_data(o)
+                data["objects"][k][o.uuid] = self._scene_data(o)
         data["player"] = self._scene_data(self.player) # FIXME: in scene data twice
         data["player"]["attitude"] = (self.player.pitch, self.player.yaw, self.player.roll)
+        data["timer"] = (self.simulation_clock.latest, self.simulation_clock.avg, self.simulation_clock.max)
         return data
 
     def scene_lookup(self, uuid):
@@ -202,8 +227,8 @@ class GameState(object):
             self.speed *= multiplier
         if self.speed < 1:
             self.speed = 1
-        elif self.speed > 2000:
-            self.speed = 2000
+        elif self.speed > 100:
+            self.speed = 100
 
 
     def toggle_pause(self):
@@ -227,62 +252,63 @@ class GameState(object):
     def poll(self):
         return self._running
 
-    render_t = -1
-
-    def get_render_t(self):
-        return self.render_t
-
     def tick(self):
-        time.sleep(1/(10*self.speed))
-        global _debug_boxes
-        game_dt = 1
-        render_t1 = time.time()
-        self.current_time += game_dt
-        objs = self.scene["ships"] + self.scene["debris"] + self.scene["bullets"]
-        if not self.paused:
-            collision_checks = []
-            # build list of destructables to check
-            for o1 in objs:
-                p0 = o1.get_position()
-                if hasattr(o1, "game_tick"):
-                    o1.game_tick(game_dt) # let it update internal state
-                p1 = o1.get_position()
-                p_norm = norm(p0)
-                # check for surface impact or escape
-                if p_norm < o1._orbit.parent.radius or p_norm > o1._orbit.parent.hill_radius:
-                    self.remove_from_scene(o1)
-                else:
-                    if o1.destructable:
-                        collision_checks.append((o1, p0, p1, p_norm))
-            # now check list
-            for idx, (o1, p0, p1, p_norm) in enumerate(collision_checks):
-                try:
-                    for o2, p0_, p1_, p_norm_ in collision_checks[idx+1:]:
-                        # so that we don't have to simulate every instant in
-                        # between, draw two cubes using previous and next position.
-                        # if the cubes intersect, then we count it as a collision.
-                        # this is approximate, but there should be no situations
-                        # so extreme that this fails, so long as the step size
-                        # is relatively small (< 1s).
-                        #
-                        # we only check against objects with a position vector
-                        # whose magnitude is close to ours, otherwise we can
-                        # assume it is nowhere near us. this tolerance is an
-                        # arbitrary value.
-                        if abs(p_norm_ - p_norm) < 10000:
-                            # _debug_boxes.append(box_diagonals(p0, p1))
-                            # _debug_boxes.append(box_diagonals(p0_, p1_))
-                            #print(o1, o2, (tuple(p0), tuple(p1)), (tuple(p0_), tuple(p1_)))
-                            if boxes_intersect((p0, p1), (p0_, p1_)):
-                                impact_vector1 = o2.get_velocity()
-                                impact_vector2 = o1.get_velocity()
-                                self.scene["debris"] += o1.explode(impact_vector1)
-                                self.scene["debris"] += o2.explode(impact_vector2)
-                                self.remove_from_scene(o1, o2)
-                                continue # dont add o1 to collision checks, it blew up (FIXME: breaks 3-way collisions)
-                except KeyError:
-                    pass # end of list
-        self.render_t = time.time() - render_t1
+        try:
+            self.simulation_clock.start_timer()
+            self.current_time += self.GAME_TIME_TICK
+            objs = self.scene["ships"] + self.scene["debris"] + self.scene["bullets"]
+            if not self.paused:
+                collision_checks = []
+                # build list of destructables to check
+                for o1 in objs:
+                    p0 = o1.get_position()
+                    if hasattr(o1, "game_tick"):
+                        o1.game_tick(self.GAME_TIME_TICK) # let it update internal state
+                    p1 = o1.get_position()
+                    p_norm = norm(p0)
+                    # check for surface impact or escape
+                    if p_norm < o1._orbit.parent.radius or p_norm > o1._orbit.parent.hill_radius:
+                        self.remove_from_scene(o1)
+                    else:
+                        if o1.destructable:
+                            collision_checks.append((o1, p0, p1, p_norm))
+                # now check list
+                for idx, (o1, p0, p1, p_norm) in enumerate(collision_checks):
+                    try:
+                        for o2, p0_, p1_, p_norm_ in collision_checks[idx+1:]:
+                            # so that we don't have to simulate every instant in
+                            # between, draw two cubes using previous and next position.
+                            # if the cubes intersect, then we count it as a collision.
+                            # this is approximate, but there should be no situations
+                            # so extreme that this fails, so long as the step size
+                            # is relatively small (< 1s).
+                            #
+                            # we only check against objects with a position vector
+                            # whose magnitude is close to ours, otherwise we can
+                            # assume it is nowhere near us. this tolerance is an
+                            # arbitrary value.
+                            if abs(p_norm_ - p_norm) < 10000:
+                                # self._debug_boxes.append(box_diagonals(p0, p1))
+                                # self._debug_boxes.append(box_diagonals(p0_, p1_))
+                                #print(o1, o2, (tuple(p0), tuple(p1)), (tuple(p0_), tuple(p1_)))
+                                if boxes_intersect((p0, p1), (p0_, p1_)):
+                                    impact_vector1 = o2.get_velocity()
+                                    impact_vector2 = o1.get_velocity()
+                                    self.scene["debris"] += o1.explode(impact_vector1)
+                                    self.scene["debris"] += o2.explode(impact_vector2)
+                                    self.remove_from_scene(o1, o2)
+                                    continue # dont add o1 to collision checks, it blew up (FIXME: breaks 3-way collisions)
+                    except KeyError:
+                        pass # end of list
+            t = self.simulation_clock.record_time()
+            # Sleep for the rest of this game tick
+            t_wait = (1/(10*self.speed)) - t
+            if t_wait > .001:
+                time.sleep(t_wait)
+            else:
+                time.sleep(.001)
+        finally:
+            self.simulation_clock.clear_timer()
 
 
 def box_diagonals(*pts):

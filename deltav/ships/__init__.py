@@ -228,7 +228,7 @@ class Bullet(Missile):
     base_mass = 45 # kg
     
     def __init__(self):
-        super(Bullet, self).__init__()
+        super(Bullet, self).__init__("250mm HE")
     
     def explode(self, *args, **kwargs):
         return []
@@ -238,7 +238,7 @@ class Torpedo(Missile):
     base_mass = 145 # kg
 
     def __init__(self, target):
-        super(Torpedo, self).__init__("M1 torpedo")
+        super(Torpedo, self).__init__("MK-1 (G)")
         self.target = target
         self.adjustments = 1
         self.time_to_impact = None
