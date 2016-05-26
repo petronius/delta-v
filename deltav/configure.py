@@ -6,7 +6,7 @@ logger.setLevel(logging.DEBUG)
 
 FULLSCREEN = False
 
-SCREEN_SIZE = (1000, 600)
+SCREEN_SIZE = (1600, 900)
 
 DEBUG=True
 
