@@ -13,13 +13,13 @@ def load_image(fname):
     """
     Return a Pyglet image object loaded from the file specified by <fname>
     """
-    return pyglet.image.load(load('images', fname))
+    return pyglet.image.load(asset_path('images', fname))
 
 def load_text(fname):
     """
     Load a text file and return its contents.
     """
-    p = load('text', fname)
+    p = asset_path('text', fname)
     return open(p).read()
 
 def load_fonts():
@@ -57,7 +57,7 @@ def load_colordata():
                     outcolors[c.get('@id')] = tuple(rgba)
     return outcolors
 
-def load(asset_type, filename):
+def asset_path(asset_type, filename):
     """
     Generic load function to simplify grabbing file paths by asset type.
     """

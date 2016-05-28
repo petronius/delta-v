@@ -57,9 +57,8 @@ class BaseShip(Body):
     def accelerate(self, dv):
         # accelerate along the current direction
         vec = array([0, dv, 0])
-        # FIXME: Should automagically match rendering of ADI in view, to ensure
-        # consistency?
-        vec = (Rz(self.roll)*Rx(self.pitch)*Ry(self.yaw)).dot(vec[:, numpy.newaxis])
+        # FIXME: I think roll is pointless?
+        vec = (Rx(self.pitch)*Ry(self.yaw)).dot(vec[:, numpy.newaxis])
         vec = numpy.squeeze(numpy.asarray(vec))
         self._orbit.accelerate(vec)
 
@@ -104,7 +103,7 @@ class BaseShip(Body):
                 break
             # FIXME: check and iterate if delta_v is too high
             #delta_v = abs(v1 - new_v)
-            # print(self, "time", t)
+            print(self, "time", t)
 
             bullet = Bullet()
             bullet.orbit(self._orbit.parent, p1, new_v)

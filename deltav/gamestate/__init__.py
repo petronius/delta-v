@@ -59,13 +59,7 @@ class GameState(object):
 
         ships = [player]#, shuttle]
 
-        for tle in load_tle_file("data/celestrak/stations.txt", max=5):
-            ship = MobShip(tle["name"])
-            vecs = Orbit.vecs_from_tle(tle, earth, ship)
-            ship.orbit(earth, *vecs)
-            ships.append(ship)
-
-        for tle in load_tle_file("data/celestrak/geo.txt", max=10):
+        for tle in load_tle_file("data/celestrak/stations.txt", max=10):
             ship = MobShip(tle["name"])
             vecs = Orbit.vecs_from_tle(tle, earth, ship)
             ship.orbit(earth, *vecs)

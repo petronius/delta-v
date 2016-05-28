@@ -25,6 +25,9 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 
 
+from deltav.assetloader import asset_path
+import glsvg
+
 
 class View3D:
 
@@ -71,8 +74,9 @@ class View3D:
         self.center_on(center_on)
         self.render_clock = DebugClock()
 
-        self.labels = {}
-        self.v3d_batch = pyglet.graphics.Batch()
+        self.sq1 = glsvg.SVGDoc(asset_path("markers", "sq-test.svg"))
+        self.sq2 = glsvg.SVGDoc(asset_path("markers", "sq-test2.svg"))
+
 
 
     def center_on(self, coords, reset = False):
@@ -98,6 +102,8 @@ class View3D:
 
     def render(self, game_view):
 
+        self.v3d_batch = pyglet.graphics.Batch() # FIXME: don't make new batch and new labels on each render!
+
         scene = game_view.get_scene_data()
         # _debug_boxes = game_view.game_state.get_debug_boxes()
         tui_times = map(lambda x: str(int(x*1000)), (game_view.ui_clock.latest, game_view.ui_clock.avg, game_view.ui_clock.max))
@@ -108,7 +114,9 @@ class View3D:
         self.text("3d render time:    "+"/".join(ren_times)+" ms", (10,self.h - 30, -1))
         self.text("total draw time:   "+"/".join(tui_times)+" ms", (10,self.h - 50, -1))
 
-        labels_on = game_view.get_option("tracking", "labels")
+        self.sq2.draw(300, 200)
+
+        self.sq1.draw(200, 200)
 
         try: 
             self.render_clock.start_timer()
@@ -134,12 +142,15 @@ class View3D:
 
                         coords = self._scene_to_screen(coords)
 
-                        if labels_on:
-                            self.text(obj["name"], coords, batch=self.v3d_batch, uuid=uuid)
-
                         if game_view.get_option("tracking", "symbols"):
                             sym, color = self.SYMBOLS[k]
-                            self.draw_symbol(sym, coords, color)
+                            #self.draw_symbol(sym, coords, color)
+                            self._flat()
+                            self.sq2.draw(coords[0], coords[1])
+
+                        if game_view.get_option("tracking", "labels"):
+                            coords = (coords[0]+10,)+coords[1:]
+                            self.text(obj["name"], coords, batch=self.v3d_batch)
 
                     elif game_view.get_option("tracking", "bodies"):
                         r = obj["radius"] * self.SCALE
@@ -149,21 +160,6 @@ class View3D:
             #     for box in _debug_boxes:
             #         self.draw_cube(*box)
 
-            # clean up old labels
-            if labels_on:
-                objs = []
-                for k, l in scene["objects"].items():
-                    objs += l.keys()
-                for uuid, label in list(self.labels.items()):
-                    if uuid not in objs:
-                        label.delete()
-                        del self.labels[uuid]
-            else:
-                for uuid, label in list(self.labels.items()):
-                    label.delete()
-                    del self.labels[uuid]
-
-            # draw labels
             self._flat()
             self.v3d_batch.draw()
 
@@ -264,20 +260,7 @@ class View3D:
     # Drawing functions.
     #
 
-    def _mk_label(self, s, x, y, batch=None):
-        s = '<font face="%s" size="1" color="#FFFFFF">%s</font>' % (self.FONT_FACE, s)
-        label = pyglet.text.HTMLLabel(s,
-            x = x,
-            y = y,
-            anchor_x = "left",
-            anchor_y = "top",
-            batch = batch,
-        )
-        if not batch:
-            label.draw()
-        return label
-
-    def text(self, s, coords, batch=None, uuid=None):
+    def text(self, s, coords, batch=None):
         """
         Add text in the scene
 
@@ -287,20 +270,26 @@ class View3D:
         """
         x, y, z = coords
         if z < 1:
-            if uuid:
-                if uuid in self.labels:
-                    label = self.labels[uuid]
-                    label.x, label.y = x, y
-                else:
-                    label = self._mk_label(s, x, y, batch)
-                    self.labels[uuid] = label
-            else:
-                label = self._mk_label(s, x, y, batch)
-        else:
-            if uuid in self.labels.keys():
-                self.labels[uuid].delete()
-                del self.labels[uuid]
 
+            self._flat()
+
+            s = '<font face="%s" size="1" color="#FFFFFF">%s</font>' % (self.FONT_FACE, s)
+
+            if batch:
+                pyglet.text.HTMLLabel(s,
+                    x = x,
+                    y = y,
+                    anchor_x = "left",
+                    anchor_y = "top",
+                    batch = batch,
+                )
+            else:
+                pyglet.text.HTMLLabel(s,
+                    x = x,
+                    y = y,
+                    anchor_x = "left",
+                    anchor_y = "top",
+                ).draw()
 
 
     def _symbol_points(self, type_, coords, offset):
@@ -489,9 +478,9 @@ class View3D:
 
         rotations = (
             (90, 1, 0, 0),
-            (roll, 0, 0, 1),
             (pitch, 1, 0, 0),
             (yaw, 0, 1, 0),
+            (roll, 0, 0, 1),
         )
         for rs in rotations:
             glRotatef(*rs)
