@@ -22,6 +22,7 @@
 ### Lambert's problem
 
 * Prado, Antonio Fernando Berticini de Almeida and Roger A Broucke, "The Minimum Delta-V Lambert's Problem", *SBA: Controle & Automação*, Vol. 7 no. 2, May/August 1996
+* Schultz, Walkiria and Antonio FB Almeida Prado, "Optimal space maneuvers in three dimensions", *Journal of the Brazilian Society of Mechanical Sciences and Engineering*, Vol. 28, No. 4, October/December 2006
 * Sharaf, MA, AN Saad, and MI Nouh, "Lambert Universal Variable Algorithm", *The Arabian Journal for Science and Engineering*, Vol. 28 no. IA, January 2003
 * Thorne, James Dana, "Optimal Continuous-Thrust Orbit Transfers", 1996, http://www.aoe.vt.edu/%7Ecdhall/theses/thorne.pdf
 
