@@ -1,12 +1,8 @@
 
 import pyglet
 
-game_app = None
-
-
-def init(*args, **kwargs):
-    global game_app
-    game_app = DeltaVApp(*args, **kwargs)
+from deltav.window import DeltaVWindow
+from deltav.views.game import GameView
 
 
 class DeltaVApp(pyglet.app.EventLoop):
@@ -20,6 +16,23 @@ class DeltaVApp(pyglet.app.EventLoop):
     #: :mod:`errno <python:errno>` in the stdlib). (0 for a normal exit, a
     #: positive integer for anything else.)
     returncode = None
+
+    def __init__(self, *args, **kwargs):
+        super(DeltaVApp, self).__init__(*args, **kwargs)
+        # TODO: this should be configurable to use all available displays in
+        # full screen, for extra spaceshipness
+        self.window = DeltaVWindow()
+        # TODO: in future, we will load the main menu first instead
+        self.new_game()
+
+    def new_game():
+        self.gameserver = GameServer()
+        self.gameclient = GameClient(self.gameserver)
+        self.gameclient.connect()
+        view = GameView(client=self.gameclient)
+        self.window.set_view(view)
+        # Schedule the event loop to trigger updates in the window each tick.
+        pyglet.clock.schedule(self.window.tick)
 
     def user_quit(self):
         """
