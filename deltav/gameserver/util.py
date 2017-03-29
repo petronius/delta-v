@@ -10,6 +10,19 @@ class DebugClock(object):
         self._t1 = None
         self._running_avg_size = running_avg_size
 
+    @property
+    def info(self):
+        return {
+            "max": self.max,
+            "avg": self.avg,
+            "latest": self.latest,
+            "samples": self._running_avg_size,
+        }
+
+    def __repr__(self):
+        return "<Clock: %(avg)s/%(max)s/%(latest)s/%(samples)s>" % self.info
+    
+
     def start_timer(self):
         self._t1 = time.time()
 

@@ -45,7 +45,7 @@ def parse_tle(lines):
         "epoch":                                epoch,
         "first_time_derivative":                _float(lines[1][33:42]),
         "second_time_derivative":               _float(lines[1][44:49]+"e"+lines[1][50:52]),
-        "bstar_drag_term":                      _float((lines[1][53:58]+"e"+lines[1][68:70]).strip()),
+        "bstar_drag_term":                      _float(lines[1][53:58]+"e"+lines[1][68:70]),
         # ephemeris type is skipped, since it is always 0
         "element_set_number":                   lines[1][64:67],
         # line 2

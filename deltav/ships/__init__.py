@@ -1,6 +1,7 @@
 
-
+import uuid
 import random
+import base64
 
 import numpy
 import pyglet
@@ -23,10 +24,15 @@ class BaseShip(Body):
 
     base_mass = 15000
 
-    def __init__(self, ship_name, radius = 1):
+    def __init__(self, ship_name, radius = 10):
         super(BaseShip, self).__init__()
         self._name = ship_name
         self._radius = radius
+        self._transponder_on = True
+        self._transponder_info = {
+            "name": self._name,
+            "flag": "SESA",
+        }
 
         self.target = None # other objects
 
@@ -46,12 +52,21 @@ class BaseShip(Body):
         }
 
         self.destructable = True
+        self.destroyed = False
 
         self._orbit = None
 
         self.pitch = 0
         self.yaw = 0
         self.roll = 0
+
+    @property
+    def transponder(self):
+        if self._transponder_on:
+            return self._transponder_info
+        else:
+            return {}
+    
 
 
     def accelerate(self, dv):
@@ -137,6 +152,7 @@ class BaseShip(Body):
             debris = Debris()
             debris.orbit(self._orbit.parent, p1, delta_v + v1)
             objs.append(debris)
+        self.destroyed = True
         return objs
 
 
@@ -216,6 +232,7 @@ class Missile(BaseShip):
         self.clock = 0
 
     def game_tick(self, dt):
+        if self.destroyed: return
         super(Missile, self).game_tick(dt)
         self.clock += dt
         if self.destructable == False and self.clock > self.invuln_time:
@@ -247,6 +264,7 @@ class Torpedo(Missile):
         return []
     
     def game_tick(self, dt):
+        if self.destroyed: return
         super(Torpedo, self).game_tick(dt)
         if self.clock > 100 and self.adjustments > 0:
             self.adjust_course()
@@ -291,4 +309,5 @@ class Debris(Missile):
         super(Debris, self).__init__("(junk)")
     
     def explode(self, *args, **kwargs):
+        self.destroyed = True
         return []

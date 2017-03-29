@@ -1,14 +1,26 @@
+appdirs==1.4.3
 cairocffi==0.7.2
 cffi==1.4.2
 cycler==0.9.0
+Cython==0.25.2
+deltav==0.0.0
+flamegraph==0.1
 -e git+https://github.com/chicken-mover/glsvg@3d70310991af13b5341e6875208cd910efd9fe76#egg=glsvg
 matplotlib==1.5.0
 numpy==1.10.2
+packaging==16.8
+pkg-resources==0.0.0
+psutil==5.2.1
 pycparser==2.14
 pyglet==1.2.4
 -e git+https://github.com/chicken-mover/pyglet-gui@20ec4b335c9af3698dfa8328894544d4d0417973#egg=Pyglet_gui
 PyOpenGL==3.1.0
 PyOpenGL-accelerate==3.1.0
 pyparsing==2.0.6
+python-dateutil==2.6.0
+pytz==2016.10
+Rtree==0.8.3
 six==1.10.0
+smartquadtree==1.0
+vprof==0.35
 xmltodict==0.10.1
